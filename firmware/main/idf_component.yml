@@ -1,0 +1,6 @@
+dependencies:
+  # Matter v1.5 pulled in as an Espressif managed component (unpacks into
+  # managed_components/espressif__esp_matter). Version 1.5.0 is available from
+  # the component registry and the local component-manager cache.
+  espressif/esp_matter:
+    version: "~1.5.0"
