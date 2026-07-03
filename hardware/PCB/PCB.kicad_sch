@@ -6548,6 +6548,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 25.4 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805BRD0710KL"
+			(at 25.4 140.97 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "282caebd-d3b2-4ef4-b5f8-d07117f93b0a")
 		)
@@ -6785,6 +6806,27 @@
 		(property "Description" "Resistor"
 			(at 149.86 85.09 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 149.86 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-AT0805BRE0733KL"
+			(at 149.86 85.09 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7178,6 +7220,27 @@
 		(property "Description" "Resistor"
 			(at 149.86 127 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 149.86 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805FRE133K3L"
+			(at 149.86 127 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7656,6 +7719,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 110.49 114.3 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-AT0805BRD071KL"
+			(at 110.49 114.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "ebd5ace8-fd61-445d-9b55-72dc15b5f51f")
 		)
@@ -7961,6 +8045,27 @@
 		(property "Description" "Resistor"
 			(at 110.49 107.95 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 110.49 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-AT0805BRD071KL"
+			(at 110.49 107.95 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8373,7 +8478,6 @@
 		)
 		(property "Mouse_PN" "80-C0805C105J4RACLR"
 			(at 62.23 133.35 0)
-			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8752,6 +8856,27 @@
 		(property "Description" "Resistor"
 			(at 62.23 120.65 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 62.23 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805BRD0710KL"
+			(at 62.23 120.65 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -9151,6 +9276,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 163.83 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "583-BC817"
+			(at 163.83 119.38 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "d5f6c172-9b9f-4690-8699-af76aa00f113")
 		)
@@ -9340,6 +9486,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 138.43 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805BRD0739K2L"
+			(at 138.43 85.09 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "28700a0f-c482-4dc2-b47c-242b766d7129")
 		)
@@ -9517,6 +9684,27 @@
 		(property "Sim.Pins" "1=B 2=E 3=C"
 			(at 123.19 107.95 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 123.19 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "583-BC817"
+			(at 123.19 107.95 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10176,6 +10364,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 175.26 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "583-BC807"
+			(at 175.26 101.6 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "3"
 			(uuid "bde823ec-2860-4799-b35a-d1dd57c2c72c")
 		)
@@ -10253,6 +10462,27 @@
 		(property "Description" "Resistor"
 			(at 177.8 125.73 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 177.8 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805BRD0782RL"
+			(at 177.8 125.73 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10668,6 +10898,27 @@
 		(property "Description" "Resistor"
 			(at 180.34 49.53 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 180.34 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805FRE0737K4L"
+			(at 180.34 49.53 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12112,6 +12363,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 180.34 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805FRE131ML"
+			(at 180.34 33.02 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "de2a13bb-190d-41e4-a87d-f38679ce3a4a")
 		)
@@ -12342,6 +12614,27 @@
 		(property "Description" "Resistor"
 			(at 138.43 127 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 138.43 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "603-RT0805DRD0722KL"
+			(at 138.43 127 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12710,6 +13003,27 @@
 		(property "Description" "Resistor"
 			(at 177.8 88.9 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 177.8 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "667-ERA-6AEB224V"
+			(at 177.8 88.9 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
