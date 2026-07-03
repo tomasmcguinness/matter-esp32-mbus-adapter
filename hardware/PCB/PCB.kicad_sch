@@ -6690,6 +6690,27 @@
 				(justify left top)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 143.51 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "851-CR54NP-100MC"
+			(at 143.51 25.4 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "68d8ea2d-9023-4ca5-948a-1299b1128bd9")
 		)
@@ -8028,6 +8049,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 168.91 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "512-SS14"
+			(at 168.91 25.4 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "5cfc4ca6-1e87-4374-bf7d-7bc8f7b9f784")
 		)
@@ -8100,6 +8142,28 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 144.78 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 144.78 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "667-ERA-6ARW512V"
 			(at 144.78 165.1 0)
 			(hide yes)
 			(show_name no)
@@ -8192,6 +8256,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 265.43 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "667-ERA-6ARW512V"
+			(at 265.43 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "0d6877a5-520e-47c9-ac54-59bd97998590")
 		)
@@ -8264,6 +8350,28 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 62.23 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 62.23 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C0805C105J4RACLR"
 			(at 62.23 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -8436,6 +8544,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 73.66 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C0805C226M8P7210"
+			(at 73.66 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "6d7e9d93-513a-47e7-9fb7-7461047144b9")
 		)
@@ -8510,6 +8640,27 @@
 		(property "Description" "500mA, Adjustable Step-Up Voltage Regulator, 1.5MHz Frequency, SOT-23-5"
 			(at 152.4 39.37 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 152.4 39.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "621-AP3015AKTR-G1"
+			(at 152.4 39.37 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8768,6 +8919,27 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 120.65 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "576-1206L050YR"
+			(at 120.65 25.4 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "db1d0210-76a6-484b-b475-f2e930582b5a")
 		)
@@ -8840,6 +9012,28 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 124.46 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 124.46 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "667-ERA-6ARW512V"
 			(at 124.46 165.1 0)
 			(hide yes)
 			(show_name no)
@@ -9032,6 +9226,28 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 60.96 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 60.96 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C0805C105J4RACLR"
 			(at 60.96 172.72 0)
 			(hide yes)
 			(show_name no)
@@ -9394,6 +9610,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 134.62 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "667-ERA-6ARW512V"
+			(at 134.62 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "80ed5c91-cbbf-437c-9610-4e44f83b0172")
 		)
@@ -9628,6 +9866,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 49.53 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "640-SWT0110020010SSA"
+			(at 49.53 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "2e9a89a4-c397-4a90-8f13-c2807318f33f")
 		)
@@ -9677,7 +9937,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric"
 			(at 194.0052 44.45 0)
 			(hide yes)
 			(show_name no)
@@ -9702,6 +9962,27 @@
 		(property "Description" "Unpolarized capacitor"
 			(at 193.04 40.64 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 193.04 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C2220C106J5RACTU"
+			(at 193.04 40.64 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10073,6 +10354,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 124.46 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "630-HSMH-H170"
+			(at 124.46 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "6b29d6d3-2ea8-4826-8d04-382479f97bf9")
 		)
@@ -10166,6 +10469,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 134.62 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "630-HSMH-H170"
+			(at 134.62 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "76d7d577-b58f-4a8f-8fae-4a9d957aabad")
 		)
@@ -10215,7 +10540,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric"
 			(at 129.2352 39.37 0)
 			(hide yes)
 			(show_name no)
@@ -10240,6 +10565,27 @@
 		(property "Description" "Unpolarized capacitor"
 			(at 128.27 35.56 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 128.27 35.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C1206C475K5P"
+			(at 128.27 35.56 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10403,6 +10749,28 @@
 		)
 		(property "Description" "RF Module, ESP32-C6 SoC, Wi-Fi 802.11b/g/n/ax, Bluetooth, BLE, Zigbee, Thread, 32-bit, 3.3V, SMD, onboard antenna"
 			(at 48.26 11.43 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 48.26 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "356-ESP32-C6MINI1UH4"
+			(at 48.26 50.8 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10723,6 +11091,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 29.21 102.87 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "640-SWT0110020010SSA"
+			(at 29.21 102.87 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "d65b0790-c268-4775-9f24-66853cc75bc6")
 		)
@@ -10850,7 +11240,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric"
 			(at 206.7052 44.45 0)
 			(hide yes)
 			(show_name no)
@@ -10875,6 +11265,27 @@
 		(property "Description" "Unpolarized capacitor"
 			(at 205.74 40.64 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 205.74 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C1206C105J5RECTU"
+			(at 205.74 40.64 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10955,6 +11366,28 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 86.36 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 86.36 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C0805C104J4RAUTO"
 			(at 86.36 172.72 0)
 			(hide yes)
 			(show_name no)
@@ -11192,6 +11625,27 @@
 		(property "Description" "USB 2.0-only 14P Type-C Receptacle connector"
 			(at 227.33 106.68 0)
 			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 227.33 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "640-USB4105-GF-A"
+			(at 227.33 106.68 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11463,6 +11917,28 @@
 			)
 		)
 		(property "Description" "250mA Low Quiscent Current LDO, 3.3V output, SOT-23"
+			(at 45.72 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 45.72 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" " 579-MCP1700T3302E/TT"
 			(at 45.72 168.91 0)
 			(hide yes)
 			(show_name no)
@@ -11956,6 +12432,28 @@
 				)
 			)
 		)
+		(property "Manufacturer_PN" ""
+			(at 269.24 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "667-ERA-6ARW512V"
+			(at 269.24 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "46025c50-3760-4422-8441-346535469017")
 		)
@@ -12028,6 +12526,28 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
+			(at 27.94 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 27.94 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "80-C0805C105J4RACLR"
 			(at 27.94 172.72 0)
 			(hide yes)
 			(show_name no)
@@ -12437,6 +12957,28 @@
 			)
 		)
 		(property "Sim.Pins" "1=K 2=A"
+			(at 144.78 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Manufacturer_PN" ""
+			(at 144.78 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouse_PN" "630-HSMH-H170"
 			(at 144.78 176.53 0)
 			(hide yes)
 			(show_name no)
