@@ -120,37 +120,11 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type,
 // safe to call.
 static void publish_meter_data(const heat_meter_data_t &d)
 {
-    // Endpoint 1: standard Flow Measurement, uint16 in 0.1 m^3/h.
-    if (d.has_flow)
-    {
-        nullable<uint16_t> mv;
-        double units = round(d.flow_m3h * 10.0);
-        if (units < 0) units = 0;
-        if (units > 65534) units = 65534; // 0xFFFF is reserved for "null"
-        mv = (uint16_t)units;
-        esp_matter_attr_val_t val = esp_matter_nullable_uint16(mv);
-        attribute::update(flow_endpoint_id, FlowMeasurement::Id,
-                          FlowMeasurement::Attributes::MeasuredValue::Id, &val);
-    }
-
-    // Endpoint 2: custom high-precision Heat Meter cluster.
     if (d.has_flow)
     {
         nullable<float> v; v = d.flow_m3h;
         esp_matter_attr_val_t val = esp_matter_nullable_float(v);
         attribute::update(heat_meter_endpoint_id, HEAT_METER_CLUSTER_ID, HM_ATTR_FLOW_ID, &val);
-    }
-    if (d.has_energy)
-    {
-        nullable<int64_t> v; v = (int64_t)llround(d.energy_wh);
-        esp_matter_attr_val_t val = esp_matter_nullable_int64(v);
-        attribute::update(heat_meter_endpoint_id, HEAT_METER_CLUSTER_ID, HM_ATTR_ENERGY_ID, &val);
-    }
-    if (d.has_volume)
-    {
-        nullable<int64_t> v; v = (int64_t)llround(d.volume_m3 * 1e6); // m^3 -> mL
-        esp_matter_attr_val_t val = esp_matter_nullable_int64(v);
-        attribute::update(heat_meter_endpoint_id, HEAT_METER_CLUSTER_ID, HM_ATTR_VOLUME_ID, &val);
     }
     if (d.has_flow_temp)
     {
@@ -224,8 +198,6 @@ static void create_heat_meter_endpoint(node_t *node)
 
     uint16_t flags = ATTRIBUTE_FLAG_NULLABLE;
     attribute::create(hm, HM_ATTR_FLOW_ID, flags, esp_matter_nullable_float(nullable<float>()));
-    attribute::create(hm, HM_ATTR_ENERGY_ID, flags, esp_matter_nullable_int64(nullable<int64_t>()));
-    attribute::create(hm, HM_ATTR_VOLUME_ID, flags, esp_matter_nullable_int64(nullable<int64_t>()));
     attribute::create(hm, HM_ATTR_FLOW_TEMP_ID, flags, esp_matter_nullable_int32(nullable<int32_t>()));
     attribute::create(hm, HM_ATTR_RETURN_TEMP_ID, flags, esp_matter_nullable_int32(nullable<int32_t>()));
     attribute::create(hm, HM_ATTR_POWER_ID, flags, esp_matter_nullable_int64(nullable<int64_t>()));
@@ -246,14 +218,7 @@ extern "C" void app_main()
     node_t *node = node::create(&node_config, app_attribute_update_cb, app_identification_cb);
     ABORT_APP_ON_FAILURE(node != nullptr, ESP_LOGE(TAG, "Failed to create Matter node"));
 
-    // Endpoint 1: standard Flow Sensor (Flow Measurement cluster).
-    flow_sensor::config_t flow_config;
-    endpoint_t *flow_ep = flow_sensor::create(node, &flow_config, ENDPOINT_FLAG_NONE, NULL);
-    ABORT_APP_ON_FAILURE(flow_ep != nullptr, ESP_LOGE(TAG, "Failed to create flow sensor endpoint"));
-    flow_endpoint_id = endpoint::get_id(flow_ep);
-    ESP_LOGI(TAG, "Flow sensor endpoint created: id %d", flow_endpoint_id);
-
-    // Endpoint 2: custom high-precision heat meter cluster.
+    // Custom heat meter cluster.
     create_heat_meter_endpoint(node);
 
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
