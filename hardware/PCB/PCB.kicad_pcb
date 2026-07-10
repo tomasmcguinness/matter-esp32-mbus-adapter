@@ -9,8 +9,8 @@
 	(paper "A4")
 	(title_block
 		(title "ESP32 M-Bus Adapter")
-		(date "2026-07-03")
-		(rev "A")
+		(date "2026-07-10")
+		(rev "B")
 	)
 	(layers
 		(0 "F.Cu" signal)
