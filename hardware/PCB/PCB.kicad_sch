@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "ESP32 M-Bus Adapter")
-		(date "2026-07-10")
-		(rev "B")
+		(date "2026-07-11")
+		(rev "C")
 	)
 	(lib_symbols
 		(symbol "CR54NP-100MC:CR54NP-100MC"
@@ -10870,6 +10870,7 @@
 	(symbol
 		(lib_id "Transistor_BJT:BC807")
 		(at 175.26 101.6 0)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -10877,10 +10878,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "8edcce2c-ad2d-46f8-8248-3ee60feb2646")
 		(property "Reference" "Q1"
-			(at 180.34 100.3299 0)
+			(at 180.34 102.8701 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10891,7 +10891,7 @@
 			)
 		)
 		(property "Value" "BC807"
-			(at 180.34 102.8699 0)
+			(at 180.34 100.3301 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10902,7 +10902,7 @@
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
-			(at 180.34 103.505 0)
+			(at 180.34 99.695 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
