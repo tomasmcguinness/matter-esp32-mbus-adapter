@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "ESP32 M-Bus Adapter")
-		(date "2026-07-14")
-		(rev "C")
+		(date "2026-07-16")
+		(rev "D")
 	)
 	(lib_symbols
 		(symbol "CR54NP-100MC:CR54NP-100MC"
