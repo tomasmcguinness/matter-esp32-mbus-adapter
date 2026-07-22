@@ -4899,7 +4899,7 @@
 	(footprint "Button_Switch_SMD:SW_SPST_TS-1088-xR025"
 		(layer "F.Cu")
 		(uuid "74553cf4-3133-40b3-abb2-cc727cf4004b")
-		(at 134.37 86.305 90)
+		(at 134.366 86.305 90)
 		(descr "SMD Tactile Switch, 3.9x3x2.5 mm, https://lcsc.com/datasheet/lcsc_datasheet_2504101957_XUNPU-TS-1088-AR02016_C720477.pdf")
 		(tags "Tactile Switch")
 		(property "Reference" "SW1"
@@ -10950,7 +10950,7 @@
 		(width 0.5)
 		(layer "F.Cu")
 		(net "MBUS+")
-		(uuid "2f09d136-e04f-48d0-a8b3-5fbea742f5c2")
+		(uuid "3ed16358-d75a-43a4-932c-32532ff55780")
 	)
 	(segment
 		(start 143.51 47.8555)
@@ -11001,6 +11001,14 @@
 		(uuid "68228d57-2af2-4466-a649-594f01be6153")
 	)
 	(segment
+		(start 147.2655 47.8555)
+		(end 147.574 47.547)
+		(width 0.5)
+		(layer "F.Cu")
+		(net "MBUS+")
+		(uuid "6bb981d2-2417-4b74-bc02-a00ba59641c4")
+	)
+	(segment
 		(start 141.224 47.8555)
 		(end 143.51 47.8555)
 		(width 0.5)
@@ -11015,14 +11023,6 @@
 		(layer "F.Cu")
 		(net "MBUS+")
 		(uuid "90537145-ec14-4618-bb8d-a28f9d37f125")
-	)
-	(segment
-		(start 147.2655 47.8555)
-		(end 147.574 47.547)
-		(width 0.5)
-		(layer "F.Cu")
-		(net "MBUS+")
-		(uuid "9f0bea46-e47f-4112-bd72-bcd26f23d4cf")
 	)
 	(segment
 		(start 134.5165 48.006)
