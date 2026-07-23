@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "ESP32 M-Bus Adapter")
-		(date "2026-07-22")
+		(date "2026-07-23")
 		(rev "F")
 	)
 	(lib_symbols
@@ -5218,16 +5218,6 @@
 	)
 	(wire
 		(pts
-			(xy 228.6 52.07) (xy 237.49 52.07)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "48a1a3ac-dff7-4f5b-bc8e-dc868da9be3b")
-	)
-	(wire
-		(pts
 			(xy 30.48 149.86) (xy 25.4 149.86)
 		)
 		(stroke
@@ -5538,16 +5528,6 @@
 	)
 	(wire
 		(pts
-			(xy 228.6 54.61) (xy 237.49 54.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "834fea48-b5ac-4764-b942-90038dbcbcca")
-	)
-	(wire
-		(pts
 			(xy 139.7 36.83) (xy 139.7 41.91)
 		)
 		(stroke
@@ -5755,6 +5735,16 @@
 			(type default)
 		)
 		(uuid "a23efe33-3e05-47f6-a588-895692bf871c")
+	)
+	(wire
+		(pts
+			(xy 228.6 54.61) (xy 237.49 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a31c4e02-ac87-452a-9404-65e61679301f")
 	)
 	(wire
 		(pts
@@ -6248,6 +6238,16 @@
 	)
 	(wire
 		(pts
+			(xy 228.6 52.07) (xy 237.49 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f97bf2eb-b699-4c66-a26a-4f7e3a155423")
+	)
+	(wire
+		(pts
 			(xy 134.62 168.91) (xy 134.62 172.72)
 		)
 		(stroke
@@ -6542,7 +6542,7 @@
 	)
 	(global_label "UART0_TX"
 		(shape input)
-		(at 228.6 54.61 180)
+		(at 228.6 52.07 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -6552,7 +6552,7 @@
 		)
 		(uuid "867825e5-a637-41db-bd61-79081594e321")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 216.6039 54.61 0)
+			(at 216.6039 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6566,7 +6566,7 @@
 	)
 	(global_label "UART0_RX"
 		(shape input)
-		(at 228.6 52.07 180)
+		(at 228.6 54.61 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -6576,7 +6576,7 @@
 		)
 		(uuid "a9cfa924-148c-4d7c-9b5d-0e78930ca44a")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 216.3015 52.07 0)
+			(at 216.3015 54.61 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
