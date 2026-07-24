@@ -1,0 +1,5 @@
+CONFIG_IDF_TARGET="esp32c6"
+
+# Console over the C6's built-in USB Serial/JTAG, so `idf.py monitor` gives an
+# interactive prompt on the same cable used for flashing.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
