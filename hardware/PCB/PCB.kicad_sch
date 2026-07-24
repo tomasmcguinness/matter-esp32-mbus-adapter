@@ -7094,7 +7094,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "851-CR54NP-100MC"
+		(property "Mouse_PN" "851-CDRH5D18NP-100NC"
 			(at 143.51 25.4 0)
 			(hide yes)
 			(show_name no)
@@ -9136,7 +9136,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C226M8P7210"
+		(property "Mouse_PN" "963-MSASL21GBB5226MT"
 			(at 24.13 29.21 0)
 			(hide yes)
 			(show_name no)
@@ -9767,7 +9767,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "583-BC817"
+		(property "Mouse_PN" "637-BC817-25"
 			(at 163.83 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -10262,7 +10262,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "583-BC817"
+		(property "Mouse_PN" "637-BC817-25"
 			(at 123.19 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -10838,7 +10838,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "581-12065D106MAT2A"
+		(property "Mouse_PN" "963-MLASU31LBB5106MT"
 			(at 193.04 40.64 0)
 			(hide yes)
 			(show_name no)
@@ -12209,7 +12209,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C1206C105J5RECTU"
+		(property "Mouse_PN" "963-MSASU319HB5105KT"
 			(at 205.74 40.64 0)
 			(hide yes)
 			(show_name no)

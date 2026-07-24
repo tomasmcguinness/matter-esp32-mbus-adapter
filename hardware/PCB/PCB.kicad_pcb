@@ -11,6 +11,7 @@
 		(title "ESP32 M-Bus Adapter")
 		(date "2026-07-23")
 		(rev "F")
+		(comment 4 "AISLER Project ID: XWNAIXGJ")
 	)
 	(layers
 		(0 "F.Cu" signal)
