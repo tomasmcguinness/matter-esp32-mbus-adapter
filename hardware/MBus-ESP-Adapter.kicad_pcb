@@ -95,7 +95,6 @@
 		)
 		(capping no)
 		(filling no)
-		(zone_defaults)
 		(pcbplotparams
 			(layerselection 0x00000000_00000000_55555555_5755f5ff)
 			(plot_on_all_layers_selection 0x00000000_00000000_00000000_00000000)
@@ -11303,14 +11302,6 @@
 		(layer "F.Cu")
 		(net "GND")
 		(uuid "4fc0ce3a-e8f0-49be-8f3b-de646987627d")
-	)
-	(segment
-		(start 94.069 58.296)
-		(end 94.069 59.996)
-		(width 0.2)
-		(layer "F.Cu")
-		(net "GND")
-		(uuid "540ab480-b89d-4a1c-8158-e75bde357301")
 	)
 	(segment
 		(start 94.669 80.074)
