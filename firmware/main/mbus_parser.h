@@ -32,6 +32,17 @@ typedef struct {
 // the frame header was understood (individual records may still be absent).
 esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out);
 
+// Bench/debug only: walk the data records of an M-Bus RSP_UD user block and log
+// every one it finds (name, scaled value, unit, raw value). Unlike mbus_parse()
+// this decodes the 0xFD/0xFB VIFE extension quantities (volts, amperes, digital
+// I/O, firmware version, baud rate) and it does not care whether the quantity
+// belongs to a heat meter. Returns nothing and touches no Matter state.
+//
+// `user` has the same layout as for mbus_parse(): C, A, CI, <header>, records.
+// The offset at which the records start is probed rather than taken from CI,
+// so this still works against a slave that emits bare records with no header.
+void mbus_parse_test(const uint8_t *user, size_t len);
+
 #ifdef __cplusplus
 }
 #endif

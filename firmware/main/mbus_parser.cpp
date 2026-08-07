@@ -196,3 +196,332 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
 
     return ESP_OK;
 }
+
+// ---------------------------------------------------------------------------
+// Bench/debug decoder. Separate from mbus_parse() on purpose: it recognises far
+// more quantities, it has no opinion about heat meters, and it only logs.
+// ---------------------------------------------------------------------------
+
+// A quantity occupies a run of consecutive VIF codes, one per decimal exponent.
+// `base` is the code for the LOWEST exponent:
+//   0x0000..0x007F  primary VIF table
+//   0xFD00..0xFD7F  VIF 0xFD escape, key = 0xFD00 | (VIFE & 0x7F)
+//   0xFB00..0xFB7F  VIF 0xFB escape, key = 0xFB00 | (VIFE & 0x7F)
+// The run is `size` codes long, and exponent(key) = scalar + (key - base).
+// This mirrors the vif_defs[] table in the AllWize MBUSPayload library that the
+// bench slave HAT encodes with, so the two stay in step.
+typedef struct {
+    uint16_t    base;
+    uint8_t     size;
+    int8_t      scalar;
+    const char *name;
+    const char *unit;
+} vif_test_def_t;
+
+static const vif_test_def_t kVifTest[] = {
+    // --- 0xFD extension table: what the bench slave HAT sends ---
+    { 0xFD0E,  1,   0, "Firmware version",     ""      },
+    { 0xFD1A,  1,   0, "Digital output",       ""      },
+    { 0xFD1B,  1,   0, "Digital input",        ""      },
+    { 0xFD1C,  1,   0, "Baud rate",            "bps"   },
+    { 0xFD40, 16,  -9, "Voltage",              "V"     },
+    { 0xFD50, 16, -12, "Current",              "A"     },
+    { 0xFD17,  1,   0, "Error flags",          ""      },
+    // --- 0xFB extension table ---
+    { 0xFB21,  1,  -1, "Volume",               "ft^3"  },
+    { 0xFB78,  8,  -3, "Max power",            "W"     },
+    // --- primary table: the real heat meter ---
+    { 0x00,    8,  -3, "Energy",               "Wh"    },
+    { 0x08,    8,   0, "Energy",               "J"     },
+    { 0x10,    8,  -6, "Volume",               "m^3"   },
+    { 0x18,    8,  -3, "Mass",                 "kg"    },
+    { 0x20,    4,   0, "On time",              ""      },
+    { 0x24,    4,   0, "Operating time",       ""      },
+    { 0x28,    8,  -3, "Power",                "W"     },
+    { 0x30,    8,   0, "Power",                "J/h"   },
+    { 0x38,    8,  -6, "Volume flow",          "m^3/h" },
+    { 0x50,    8,  -3, "Mass flow",            "kg/h"  },
+    { 0x58,    4,  -3, "Flow temperature",     "degC"  },
+    { 0x5C,    4,  -3, "Return temperature",   "degC"  },
+    { 0x60,    4,  -3, "Temperature diff",     "K"     },
+    { 0x64,    4,  -3, "External temperature", "degC"  },
+    { 0x68,    4,  -3, "Pressure",             "bar"   },
+    { 0x6C,    1,   0, "Date",                 ""      },
+    { 0x6D,    1,   0, "Date/time",            ""      },
+    { 0x78,    1,   0, "Fabrication number",   ""      },
+    { 0x79,    1,   0, "Enhanced identification", ""   },
+};
+
+// Find the row covering `key`. On a hit `*exp_out` gets the decimal exponent.
+static const vif_test_def_t *vif_test_lookup(uint16_t key, int8_t *exp_out)
+{
+    for (size_t i = 0; i < sizeof(kVifTest) / sizeof(kVifTest[0]); i++) {
+        const vif_test_def_t *d = &kVifTest[i];
+        if (key >= d->base && key < (uint16_t)(d->base + d->size)) {
+            *exp_out = (int8_t)(d->scalar + (int)(key - d->base));
+            return d;
+        }
+    }
+    return NULL;
+}
+
+typedef struct {
+    int    records;    // structurally valid records seen
+    int    known;      // records whose VIF key hit the table
+    int    unknown;    // decoded, but the VIF key is not in kVifTest
+    int    nonnumeric; // coding we cannot turn into a number (LVAR, etc.)
+    size_t consumed;   // where the walk stopped
+    bool   overrun;    // a record ran off the end of the buffer
+} walk_stats_t;
+
+// Walk the data records starting at user[start]. With `log` set, every record
+// is logged; otherwise this is a silent dry run used to score the candidate
+// start offsets.
+static walk_stats_t walk_records(const uint8_t *user, size_t len, size_t start, bool log)
+{
+    walk_stats_t st = { 0, 0, 0, 0, start, false };
+    size_t pos = start;
+
+    while (pos < len) {
+        uint8_t dif0 = user[pos];
+        uint8_t dif = user[pos++];
+
+        if (dif == 0x0F || dif == 0x1F) {
+            break; // manufacturer-specific data / more records in the next frame
+        }
+        if (dif == 0x2F) {
+            continue; // idle filler byte
+        }
+
+        uint8_t coding = dif & 0x0F;
+
+        // Skip DIFEs (bit 7 = extension).
+        while ((dif & 0x80) && pos < len) {
+            dif = user[pos++];
+        }
+        if (pos >= len) {
+            st.overrun = true;
+            break;
+        }
+
+        // VIF, plus the VIFE that carries the quantity when the VIF is an
+        // extension escape. Test for the escape byte *exactly*: 0xFD/0xFB always
+        // have bit 7 set (that is what makes them escapes), so masking with 0x7F
+        // first -- as mbus_parse() does -- collapses every extension record to
+        // 0x7D/0x7B and loses the quantity.
+        uint8_t vif = user[pos++];
+        uint16_t key;
+        if (vif == 0xFD || vif == 0xFB) {
+            if (pos >= len) {
+                st.overrun = true;
+                break;
+            }
+            uint8_t v = user[pos++];
+            key = (uint16_t)(((uint16_t)vif << 8) | (uint16_t)(v & 0x7F));
+            // Any further VIFEs chain off the FIRST VIFE's bit 7, not the escape's.
+            while ((v & 0x80) && pos < len) {
+                v = user[pos++];
+            }
+        } else {
+            key = (uint16_t)(vif & 0x7F);
+            uint8_t v = vif;
+            while ((v & 0x80) && pos < len) {
+                v = user[pos++];
+            }
+        }
+
+        // Determine data length.
+        int data_len;
+        if (coding == 0x0D) {          // LVAR: next byte is the length
+            if (pos >= len) {
+                st.overrun = true;
+                break;
+            }
+            data_len = user[pos++];
+        } else if (coding == 0x0F) {   // special function
+            break;
+        } else {
+            data_len = kDifDataBytes[coding];
+            if (data_len < 0) break;   // unexpected
+        }
+
+        if (pos + (size_t)data_len > len) {
+            st.overrun = true;
+            break;
+        }
+
+        const uint8_t *data = &user[pos];
+        pos += data_len;
+
+        // Decode the value (integer / BCD / real). LVAR strings are skipped.
+        double value = 0;
+        bool decoded = false;
+        if (coding == 0x05) {          // 32-bit IEEE-754 real
+            if (data_len == 4) {
+                float f;
+                memcpy(&f, data, 4);
+                value = f;
+                decoded = true;
+            }
+        } else if (dif_is_bcd(coding)) {
+            value = decode_bcd(data, data_len);
+            decoded = true;
+        } else if (coding >= 0x01 && coding <= 0x07) {
+            value = decode_int(data, data_len);
+            decoded = true;
+        }
+
+        int8_t exp = 0;
+        const vif_test_def_t *def = vif_test_lookup(key, &exp);
+        if (!decoded) {
+            st.nonnumeric++;
+        } else if (def) {
+            st.known++;
+        } else {
+            st.unknown++;
+        }
+
+        if (log) {
+            if (def && decoded) {
+                ESP_LOGI(TAG, "  [%d] DIF=%02X VIF=%04X %-22s = %.6f %s  (raw=%.0f exp=%d)",
+                         st.records, dif0, key, def->name, value * pow10i(exp), def->unit,
+                         value, exp);
+            } else if (decoded) {
+                // Not in kVifTest -- add a row for it.
+                ESP_LOGW(TAG, "  [%d] DIF=%02X VIF=%04X UNKNOWN raw=%.0f (%d data byte(s))",
+                         st.records, dif0, key, value, data_len);
+            } else {
+                ESP_LOGW(TAG, "  [%d] DIF=%02X VIF=%04X non-numeric coding 0x%X, %d data byte(s)",
+                         st.records, dif0, key, coding, data_len);
+            }
+        }
+
+        st.records++;
+    }
+
+    st.consumed = pos;
+    return st;
+}
+
+// A walk is "clean" only if every single record decoded to a recognised
+// quantity and the walk landed exactly on the end of the buffer.
+//
+// Anything less is treated as a miss. This matters: the DIF/VIF grammar is
+// self-synchronising enough that starting at the WRONG offset still yields a
+// run of structurally valid records, some of which land in the table by chance
+// and log as confident-looking nonsense ("Volume = 6718.34 m^3"). Counting good
+// records and picking the highest total therefore reliably picks the wrong
+// offset. Demanding zero junk is what actually discriminates.
+static bool walk_is_clean(const walk_stats_t *st, size_t len)
+{
+    return !st->overrun
+        && st->records > 0
+        && st->unknown == 0
+        && st->nonnumeric == 0
+        && st->consumed == len;
+}
+
+// Record offset implied by the CI field, or 0 if the CI is not one we know.
+static size_t declared_record_offset(uint8_t ci)
+{
+    switch (ci) {
+    case 0x72: // 12-byte long header
+    case 0x76:
+        return 3 + 12;
+    case 0x7A: // 4-byte short header
+        return 3 + 4;
+    case 0x77:
+    case 0x78: // no header
+        return 3;
+    default:
+        return 0;
+    }
+}
+
+void mbus_parse_test(const uint8_t *user, size_t len)
+{
+    if (user == NULL || len < 3) {
+        ESP_LOGW(TAG, "mbus_parse_test: user block too short (%u)", (unsigned)len);
+        return;
+    }
+
+    // Candidate offsets at which the data records might begin. The CI field is
+    // only a hint: a slave built on a payload-encoder library may emit bare
+    // records with no header at all, or declare a header it does not send.
+    static const uint8_t kOffsets[] = {
+        2,  // no CI at all:  [C, A, records...]
+        3,  // CI, no header
+        7,  // CI + 4-byte short header
+        15, // CI + 12-byte long header
+    };
+
+    uint8_t ci = user[2];
+    size_t declared = declared_record_offset(ci);
+
+    ESP_LOGI(TAG, "user block %u bytes, C=%02X A=%02X CI=%02X (implies records at +%u)",
+             (unsigned)len, user[0], user[1], ci, (unsigned)declared);
+
+    // Prefer the offset the CI field declares, but only if it walks cleanly.
+    // Otherwise take the clean walk that yields the most records: a clean walk
+    // starting further in can only have skipped real records. Never fall back
+    // to a "best effort" offset -- a mis-aligned walk produces plausible-looking
+    // wrong values, which is worse than reporting nothing.
+    bool declared_clean = false;
+    size_t chosen = 0;
+    int chosen_records = 0;
+    int clean_count = 0;
+
+    for (size_t i = 0; i < sizeof(kOffsets) / sizeof(kOffsets[0]); i++) {
+        size_t off = kOffsets[i];
+        if (off >= len) {
+            continue;
+        }
+        walk_stats_t st = walk_records(user, len, off, false);
+        bool clean = walk_is_clean(&st, len);
+
+        if (st.overrun) {
+            ESP_LOGI(TAG, "  offset %2u: overrun after %d record(s)", (unsigned)off, st.records);
+        } else {
+            ESP_LOGI(TAG, "  offset %2u: %d rec (%d known, %d unknown, %d non-numeric), "
+                          "consumed %u/%u%s",
+                     (unsigned)off, st.records, st.known, st.unknown, st.nonnumeric,
+                     (unsigned)st.consumed, (unsigned)len, clean ? "  CLEAN" : "");
+        }
+
+        if (!clean) {
+            continue;
+        }
+        clean_count++;
+        if (off == declared) {
+            declared_clean = true;
+        }
+        if (st.records > chosen_records) {
+            chosen = off;
+            chosen_records = st.records;
+        }
+    }
+
+    if (clean_count == 0) {
+        ESP_LOGW(TAG, "No candidate offset produced a clean walk -- check the raw frame dump "
+                      "for the real header layout, or add the missing VIF codes to kVifTest");
+        return;
+    }
+
+    if (declared_clean) {
+        chosen = declared;
+    } else {
+        ESP_LOGW(TAG, "CI 0x%02X implies records at +%u, but that offset does not decode "
+                      "cleanly; using +%u instead -- the slave's header does not match its "
+                      "CI field",
+                 ci, (unsigned)declared, (unsigned)chosen);
+    }
+
+    if (clean_count > 1) {
+        ESP_LOGW(TAG, "%d candidate offsets decoded cleanly -- picked +%u (most records). "
+                      "Check the raw dump if the values below look wrong",
+                 clean_count, (unsigned)chosen);
+    }
+
+    ESP_LOGI(TAG, "Decoding from offset %u:", (unsigned)chosen);
+    walk_records(user, len, chosen, true);
+}

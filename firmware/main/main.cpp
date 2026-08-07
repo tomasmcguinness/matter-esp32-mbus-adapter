@@ -52,6 +52,21 @@ static uint16_t heat_meter_endpoint_id = 0; // custom high-precision cluster
 
 #define MBUS_POLL_INTERVAL_MS 10000
 
+// Bring-up mode. Work up the ladder as each layer is proven:
+//   NKE_ONLY -> is the bus wired right and does the meter ACK?
+//   TEST     -> does a telegram arrive, and what is actually in it?
+//   NORMAL   -> parse into heat_meter_data_t and publish to Matter.
+#define MBUS_MODE_NORMAL   0
+#define MBUS_MODE_NKE_ONLY 1
+#define MBUS_MODE_TEST     2
+
+#ifndef MBUS_MODE
+#define MBUS_MODE MBUS_MODE_TEST
+#endif
+
+#define MBUS_NKE_TEST_INTERVAL_MS 2000
+#define MBUS_TEST_INTERVAL_MS 3000
+
 #define ABORT_APP_ON_FAILURE(x, ...)               \
     do                                             \
     {                                              \
@@ -117,7 +132,9 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type,
 
 // --- Pushing meter values into the Matter data model -----------------------
 // Called on the Matter/CHIP thread (via ScheduleLambda) so attribute::update is
-// safe to call.
+// safe to call. Currently unreferenced while the publish call below is commented
+// out for bench testing.
+__attribute__((unused))
 static void publish_meter_data(const heat_meter_data_t &d)
 {
     if (d.has_flow)
@@ -148,6 +165,20 @@ static void publish_meter_data(const heat_meter_data_t &d)
 
 static void mbus_poll_task(void *arg)
 {
+#if MBUS_MODE == MBUS_MODE_NKE_ONLY
+
+    // Link bring-up: send SND_NKE and report whether the meter ACKs. No data
+    // request, no parsing, nothing published to the Matter data model.
+    while (true)
+    {
+        esp_err_t err = mbus_send_nke(MBUS_PRIMARY_ADDRESS);
+        ESP_LOGI(TAG, "SND_NKE to 0x%02X -> %s", MBUS_PRIMARY_ADDRESS, esp_err_to_name(err));
+
+        vTaskDelay(pdMS_TO_TICKS(MBUS_NKE_TEST_INTERVAL_MS));
+    }
+
+#else
+
     static uint8_t user[256];
 
     while (true)
@@ -156,6 +187,12 @@ static void mbus_poll_task(void *arg)
         esp_err_t err = mbus_request_data(MBUS_PRIMARY_ADDRESS, user, sizeof(user), &user_len);
         if (err == ESP_OK)
         {
+#if MBUS_MODE == MBUS_MODE_TEST
+            // Bench mode: dump the user block and log every data record we can
+            // decode, whatever quantity it is. Nothing reaches Matter.
+            ESP_LOG_BUFFER_HEXDUMP(TAG, user, user_len, ESP_LOG_INFO);
+            mbus_parse_test(user, user_len);
+#else
             heat_meter_data_t data;
             if (mbus_parse(user, user_len, &data) == ESP_OK)
             {
@@ -168,22 +205,35 @@ static void mbus_poll_task(void *arg)
                          data.has_return_temp ? data.return_temp_c : NAN,
                          data.has_power ? data.power_w : NAN);
 
-                // ScheduleLambda only stores a small closure (<= 24 bytes), so
-                // pass the snapshot by heap pointer rather than by value.
-                heat_meter_data_t *snapshot = new heat_meter_data_t(data);
-                chip::DeviceLayer::SystemLayer().ScheduleLambda([snapshot]() {
-                    publish_meter_data(*snapshot);
-                    delete snapshot;
-                });
+                // TODO: re-enable once bench testing against the slave HAT is
+                // done. ScheduleLambda only stores a small closure (<= 24
+                // bytes), so pass the snapshot by heap pointer, not by value.
+                //
+                // heat_meter_data_t *snapshot = new heat_meter_data_t(data);
+                // chip::DeviceLayer::SystemLayer().ScheduleLambda([snapshot]() {
+                //     publish_meter_data(*snapshot);
+                //     delete snapshot;
+                // });
             }
             else
             {
                 ESP_LOGW(TAG, "Failed to parse M-Bus telegram");
             }
+#endif
+        }
+        else
+        {
+            ESP_LOGW(TAG, "REQ_UD2 failed: %s", esp_err_to_name(err));
         }
 
+#if MBUS_MODE == MBUS_MODE_TEST
+        vTaskDelay(pdMS_TO_TICKS(MBUS_TEST_INTERVAL_MS));
+#else
         vTaskDelay(pdMS_TO_TICKS(MBUS_POLL_INTERVAL_MS));
+#endif
     }
+
+#endif // MBUS_MODE
 }
 
 // --- Custom cluster construction -------------------------------------------

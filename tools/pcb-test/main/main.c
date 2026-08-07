@@ -21,8 +21,8 @@
 
 // Same pins as the production firmware: see firmware/main/mbus.cpp, which is
 // the source of truth for the wiring.
-#define TX_PIN ((gpio_num_t)4) // ESP TX -> M-Bus modulator
-#define RX_PIN ((gpio_num_t)5) // ESP RX <- M-Bus receiver (input only)
+#define TX_PIN ((gpio_num_t)23) // ESP TX -> M-Bus modulator
+#define RX_PIN ((gpio_num_t)22) // ESP RX <- M-Bus receiver (input only)
 
 // Status LED, mirrors the TX level so the bus state is visible at a glance:
 // lit = mark (~36 V), dark = space (~24 V). Set to 0 if the LED is wired

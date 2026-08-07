@@ -13,8 +13,8 @@
 // just drives a plain UART. M-Bus uses 2400 baud, 8 data bits, EVEN parity,
 // 1 stop bit. Pins below avoid the C6 strapping/USB-JTAG pins.
 #define MBUS_UART   UART_NUM_1
-#define MBUS_TXD_PIN ((gpio_num_t)4)  // ESP TX -> adapter RX
-#define MBUS_RXD_PIN ((gpio_num_t)5)  // ESP RX <- adapter TX
+#define MBUS_TXD_PIN ((gpio_num_t)23)  // ESP TX -> adapter RX
+#define MBUS_RXD_PIN ((gpio_num_t)22)  // ESP RX <- adapter TX
 
 // M-Bus frame markers / control fields (EN 13757-2)
 #define MBUS_START_SHORT 0x10
@@ -22,8 +22,15 @@
 #define MBUS_STOP        0x16
 #define MBUS_C_SND_NKE   0x40  // link reset
 #define MBUS_C_REQ_UD2   0x5B  // request user data (class 2), FCB=0
+#define MBUS_ACK         0xE5  // single-byte acknowledge
 
 #define MBUS_RX_BUF_SIZE 512
+
+// Hex-dump the whole RX burst before any framing checks. Without this every
+// early return below (bad L/L, missing stop byte, checksum mismatch) throws
+// away the only evidence of what the meter actually sent. Set to 0 in
+// production.
+#define MBUS_LOG_RAW_RX 1
 
 static const char *TAG = "MBus";
 
@@ -65,6 +72,36 @@ void mbus_uart_init(void)
     uart_driver_install(MBUS_UART, MBUS_RX_BUF_SIZE, 0, 0, NULL, 0);
 }
 
+esp_err_t mbus_send_nke(uint8_t primary_addr)
+{
+    uart_flush_input(MBUS_UART);
+
+    ESP_LOGI(TAG, "TX SND_NKE: 10 %02X %02X %02X 16", MBUS_C_SND_NKE, primary_addr,
+             (uint8_t)(MBUS_C_SND_NKE + primary_addr));
+    mbus_send_short_frame(MBUS_C_SND_NKE, primary_addr);
+
+    // A slave that accepts the reset answers with a single 0xE5 within the
+    // 11-330 bit-time window; 1 s is generous at 2400 baud.
+    uint8_t rx[16];
+    int len = uart_read_bytes(MBUS_UART, rx, sizeof(rx), pdMS_TO_TICKS(1000));
+    if (len <= 0) {
+        ESP_LOGW(TAG, "No ACK from meter at 0x%02X", primary_addr);
+        return ESP_ERR_TIMEOUT;
+    }
+
+    ESP_LOG_BUFFER_HEX_LEVEL(TAG, rx, len, ESP_LOG_INFO);
+
+    for (int i = 0; i < len; i++) {
+        if (rx[i] == MBUS_ACK) {
+            ESP_LOGI(TAG, "ACK (0xE5) received from meter at 0x%02X", primary_addr);
+            return ESP_OK;
+        }
+    }
+
+    ESP_LOGW(TAG, "Got %d byte(s) but no ACK (0xE5)", len);
+    return ESP_ERR_INVALID_RESPONSE;
+}
+
 esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, size_t *out_len)
 {
     if (buf == NULL || out_len == NULL) {
@@ -88,6 +125,11 @@ esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, s
         ESP_LOGW(TAG, "No response from meter at 0x%02X", primary_addr);
         return ESP_ERR_TIMEOUT;
     }
+
+#if MBUS_LOG_RAW_RX
+    ESP_LOGI(TAG, "RX burst, %d byte(s):", len);
+    ESP_LOG_BUFFER_HEXDUMP(TAG, rx, len, ESP_LOG_INFO);
+#endif
 
     // Find the start of the long frame (skip any leading ACK / echo bytes).
     int i = 0;
