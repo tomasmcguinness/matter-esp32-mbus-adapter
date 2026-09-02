@@ -10642,6 +10642,18 @@
 			(justify left bottom)
 		)
 	)
+	(gr_text "CA9M7"
+		(at 82.55 73.914 270)
+		(layer "F.SilkS")
+		(uuid "d40637c1-489a-4378-9c35-a0f987edbb29")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify right bottom)
+		)
+	)
 	(gr_text "RESET"
 		(at 84.087 86.614 90)
 		(layer "F.SilkS")
@@ -10668,7 +10680,7 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "Tomás McGuinness\nMBus-ESP32\nRevision: ${REVISION}"
+	(gr_text "@tomasmcguinness\nMBus ESP32 Adapter\nRevision: ${REVISION}"
 		(at 111.265 41.298 0)
 		(layer "B.SilkS")
 		(uuid "a2c5f43c-5135-4219-9f57-20376b320778")
