@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "ESP32 M-Bus Adapter")
-		(date "2026-07-23")
-		(rev "F")
+		(date "2026-09-02")
+		(rev "G")
 	)
 	(lib_symbols
 		(symbol "CR54NP-100MC:CR54NP-100MC"
@@ -668,7 +668,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Connector:USB_C_Receptacle_USB2.0_14P"
+		(symbol "Connector:USB_C_Receptacle_USB2.0_16P"
 			(pin_names
 				(offset 1.016)
 			)
@@ -687,7 +687,7 @@
 					)
 				)
 			)
-			(property "Value" "USB_C_Receptacle_USB2.0_14P"
+			(property "Value" "USB_C_Receptacle_USB2.0_16P"
 				(at 0 19.685 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -719,7 +719,7 @@
 					)
 				)
 			)
-			(property "Description" "USB 2.0-only 14P Type-C Receptacle connector"
+			(property "Description" "USB 2.0-only 16P Type-C Receptacle connector"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -752,7 +752,7 @@
 					)
 				)
 			)
-			(symbol "USB_C_Receptacle_USB2.0_14P_0_0"
+			(symbol "USB_C_Receptacle_USB2.0_16P_0_0"
 				(rectangle
 					(start -0.254 -17.78)
 					(end 0.254 -16.764)
@@ -841,8 +841,30 @@
 						(type none)
 					)
 				)
+				(rectangle
+					(start 10.16 -12.446)
+					(end 9.144 -12.954)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start 10.16 -14.986)
+					(end 9.144 -15.494)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
 			)
-			(symbol "USB_C_Receptacle_USB2.0_14P_0_1"
+			(symbol "USB_C_Receptacle_USB2.0_16P_0_1"
 				(rectangle
 					(start -10.16 17.78)
 					(end 10.16 -17.78)
@@ -1043,7 +1065,7 @@
 					)
 				)
 			)
-			(symbol "USB_C_Receptacle_USB2.0_14P_1_1"
+			(symbol "USB_C_Receptacle_USB2.0_16P_1_1"
 				(pin passive line
 					(at 0 -22.86 90)
 					(length 5.08)
@@ -1127,6 +1149,24 @@
 						)
 					)
 					(number "A7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 15.24 -12.7 180)
+					(length 5.08)
+					(name "SBU1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "A8"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1264,6 +1304,24 @@
 						)
 					)
 				)
+				(pin bidirectional line
+					(at 15.24 -15.24 180)
+					(length 5.08)
+					(name "SBU2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "B8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
 				(pin passive line
 					(at 15.24 15.24 180)
 					(length 5.08)
@@ -1312,7 +1370,7 @@
 							)
 						)
 					)
-					(number "S1"
+					(number "SH"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3230,7 +3288,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Regulator_Linear:MCP1700x-330xxTT"
+		(symbol "Regulator_Linear:AP2112K-3.3"
 			(pin_names
 				(offset 0.254)
 			)
@@ -3240,17 +3298,7 @@
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
 			(property "Reference" "U"
-				(at -3.81 3.175 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "MCP1700x-330xxTT"
-				(at 0 3.175 0)
+				(at -5.08 5.715 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
@@ -3260,10 +3308,21 @@
 					(justify left)
 				)
 			)
-			(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
+			(property "Value" "AP2112K-3.3"
 				(at 0 5.715 0)
 				(show_name no)
 				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-5"
+				(at 0 8.255 0)
+				(show_name no)
+				(do_not_autoplace no)
 				(hide yes)
 				(effects
 					(font
@@ -3271,7 +3330,18 @@
 					)
 				)
 			)
-			(property "Datasheet" "http://ww1.microchip.com/downloads/en/DeviceDoc/20001826D.pdf"
+			(property "Datasheet" "https://www.diodes.com/assets/Datasheets/AP2112.pdf"
+				(at 0 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -3282,7 +3352,7 @@
 					)
 				)
 			)
-			(property "Description" "250mA Low Quiscent Current LDO, 3.3V output, SOT-23"
+			(property "ki_keywords" "linear regulator ldo fixed positive"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -3293,7 +3363,7 @@
 					)
 				)
 			)
-			(property "ki_keywords" "regulator linear ldo"
+			(property "ki_fp_filters" "SOT?23?5*"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -3304,20 +3374,9 @@
 					)
 				)
 			)
-			(property "ki_fp_filters" "SOT?23*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "MCP1700x-330xxTT_0_1"
+			(symbol "AP2112K-3.3_0_1"
 				(rectangle
-					(start -5.08 1.905)
+					(start -5.08 4.445)
 					(end 5.08 -5.08)
 					(stroke
 						(width 0.254)
@@ -3328,11 +3387,11 @@
 					)
 				)
 			)
-			(symbol "MCP1700x-330xxTT_1_1"
+			(symbol "AP2112K-3.3_1_1"
 				(pin power_in line
-					(at 0 -7.62 90)
+					(at -7.62 2.54 0)
 					(length 2.54)
-					(name "GND"
+					(name "VIN"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3347,10 +3406,10 @@
 						)
 					)
 				)
-				(pin power_out line
-					(at 7.62 0 180)
+				(pin power_in line
+					(at 0 -7.62 90)
 					(length 2.54)
-					(name "VO"
+					(name "GND"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3365,10 +3424,10 @@
 						)
 					)
 				)
-				(pin power_in line
+				(pin input line
 					(at -7.62 0 0)
 					(length 2.54)
-					(name "VI"
+					(name "EN"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3376,6 +3435,43 @@
 						)
 					)
 					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 5.08 0 180)
+					(length 2.54)
+					(hide yes)
+					(name "NC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 7.62 2.54 180)
+					(length 2.54)
+					(name "VOUT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -4641,12 +4737,6 @@
 		(uuid "0a372e88-d98f-4829-81db-19c318f2a128")
 	)
 	(junction
-		(at 227.33 147.32)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "1655b4fd-e2ba-4a0e-9a23-54ac0d0fd5b7")
-	)
-	(junction
 		(at 180.34 25.4)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4755,10 +4845,22 @@
 		(uuid "b4824516-d85d-4dfc-9e33-bc15ac051110")
 	)
 	(junction
+		(at 265.43 149.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "b888377b-f6c0-4cff-a814-cf5b3cb668ba")
+	)
+	(junction
 		(at 227.33 129.54)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c861b5be-95cf-49a0-9db9-c6c47e392d8d")
+	)
+	(junction
+		(at 38.1 168.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "cbabf663-99b8-4e17-987f-888461d0676e")
 	)
 	(junction
 		(at 227.33 149.86)
@@ -4785,6 +4887,10 @@
 		(uuid "ff7d07ac-2a19-4d20-bfb4-9d240dd6e931")
 	)
 	(no_connect
+		(at 242.57 121.92)
+		(uuid "19bf409e-2d82-4e20-a9b0-718c22a0b572")
+	)
+	(no_connect
 		(at 55.88 50.8)
 		(uuid "22c380f2-1ec3-413d-ab0e-399518aadee3")
 	)
@@ -4803,6 +4909,10 @@
 	(no_connect
 		(at 55.88 63.5)
 		(uuid "63a66f83-fb45-4766-8467-1ede4afe3ae2")
+	)
+	(no_connect
+		(at 242.57 119.38)
+		(uuid "7e86baf4-e518-4d4e-9133-2f20385962c7")
 	)
 	(no_connect
 		(at 86.36 66.04)
@@ -4945,16 +5055,6 @@
 			(type default)
 		)
 		(uuid "1e6c231f-ab43-45b0-9cdf-e65a6a49da70")
-	)
-	(wire
-		(pts
-			(xy 265.43 147.32) (xy 227.33 147.32)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1f7524dc-e792-4e14-8cba-8aaf84dcd568")
 	)
 	(wire
 		(pts
@@ -5118,7 +5218,7 @@
 	)
 	(wire
 		(pts
-			(xy 227.33 147.32) (xy 227.33 149.86)
+			(xy 227.33 129.54) (xy 227.33 149.86)
 		)
 		(stroke
 			(width 0)
@@ -5238,7 +5338,7 @@
 	)
 	(wire
 		(pts
-			(xy 265.43 146.05) (xy 265.43 147.32)
+			(xy 265.43 146.05) (xy 265.43 149.86)
 		)
 		(stroke
 			(width 0)
@@ -5328,7 +5428,7 @@
 	)
 	(wire
 		(pts
-			(xy 269.24 149.86) (xy 227.33 149.86)
+			(xy 269.24 149.86) (xy 265.43 149.86)
 		)
 		(stroke
 			(width 0)
@@ -5408,6 +5508,16 @@
 	)
 	(wire
 		(pts
+			(xy 45.72 179.07) (xy 45.72 180.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6a7db5c8-cd35-4b86-b37f-877d590acab6")
+	)
+	(wire
+		(pts
 			(xy 45.72 180.34) (xy 45.72 186.69)
 		)
 		(stroke
@@ -5475,6 +5585,16 @@
 			(type default)
 		)
 		(uuid "798b8175-557f-44f7-abf5-08d482913090")
+	)
+	(wire
+		(pts
+			(xy 38.1 168.91) (xy 38.1 171.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "799d6adb-6ddb-43fb-aaab-9beb5593f340")
 	)
 	(wire
 		(pts
@@ -5708,16 +5828,6 @@
 	)
 	(wire
 		(pts
-			(xy 227.33 129.54) (xy 227.33 147.32)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9e8dfaa6-0575-4649-b1d6-09238bb68254")
-	)
-	(wire
-		(pts
 			(xy 231.14 49.53) (xy 231.14 46.99)
 		)
 		(stroke
@@ -5825,16 +5935,6 @@
 			(type default)
 		)
 		(uuid "ae512352-7089-478e-83a4-fb2f85c39697")
-	)
-	(wire
-		(pts
-			(xy 45.72 180.34) (xy 45.72 176.53)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "af54627f-e51a-477e-b466-b7a6d7b48d88")
 	)
 	(wire
 		(pts
@@ -6235,6 +6335,16 @@
 			(type default)
 		)
 		(uuid "f7c8e437-2c5c-4c1c-9025-581f50beff56")
+	)
+	(wire
+		(pts
+			(xy 265.43 149.86) (xy 227.33 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f9753449-f2a7-4493-9b8f-3ce58c8247b6")
 	)
 	(wire
 		(pts
@@ -6948,7 +7058,7 @@
 			(uuid "835a5991-5598-4950-bc44-6617db7cf3c6")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R9")
 					(unit 1)
@@ -7112,7 +7222,7 @@
 			(uuid "168bc5d2-0af1-4756-a1fc-b857320335f5")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "L2")
 					(unit 1)
@@ -7216,7 +7326,7 @@
 			(uuid "7d0f365b-1165-4d44-853e-8f6327e1d7cf")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R13")
 					(unit 1)
@@ -7294,7 +7404,7 @@
 			(uuid "53fc00df-479e-4520-9ed4-5154f3ec14a6")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR017")
 					(unit 1)
@@ -7372,7 +7482,7 @@
 			(uuid "5bcad363-866f-4c47-b37d-19efa96334a4")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR032")
 					(unit 1)
@@ -7450,7 +7560,7 @@
 			(uuid "29345f8e-f472-42bd-b49e-7e8e2c780c53")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR04")
 					(unit 1)
@@ -7528,7 +7638,7 @@
 			(uuid "a328d5ce-fbcd-4595-9880-9385378bd7cb")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR028")
 					(unit 1)
@@ -7605,7 +7715,7 @@
 			(uuid "a5dedf64-ee8b-444b-85eb-a1d78d1827f6")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR02")
 					(unit 1)
@@ -7709,7 +7819,7 @@
 			(uuid "ac1475cc-fda0-4836-b0f7-d559d57e17da")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R20")
 					(unit 1)
@@ -7787,7 +7897,7 @@
 			(uuid "f894f7a1-f90f-4109-a9b4-acf5ea57dc7e")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR024")
 					(unit 1)
@@ -7865,7 +7975,7 @@
 			(uuid "b29edd96-af98-41bb-b837-a8301f1656f5")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR014")
 					(unit 1)
@@ -7943,7 +8053,7 @@
 			(uuid "31549b42-99d3-4a6a-b7ea-d7e0f5797c59")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR029")
 					(unit 1)
@@ -8021,7 +8131,7 @@
 			(uuid "d617c69a-337e-45e2-be67-2b326045b24f")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR08")
 					(unit 1)
@@ -8099,7 +8209,7 @@
 			(uuid "4474a0cb-bd60-4dab-8abf-d016c77efb55")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR013")
 					(unit 1)
@@ -8201,7 +8311,7 @@
 			(uuid "69ffe450-812b-4b64-8073-62c2f46f5b3a")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R17")
 					(unit 1)
@@ -8278,7 +8388,7 @@
 			(uuid "3604bb87-9bf6-4174-b1e4-8ffc2e7f3ac1")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR07")
 					(unit 1)
@@ -8356,9 +8466,98 @@
 			(uuid "76b16575-02d4-467b-a0cd-e9ce6b5bae16")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR026")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Regulator_Linear:AP2112K-3.3")
+		(at 45.72 171.45 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "3297c34f-b222-410d-a8c9-ebb37ae7078b")
+		(property "Reference" "U4"
+			(at 45.72 162.56 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "AP2112K-3.3"
+			(at 45.72 165.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-5"
+			(at 45.72 163.195 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.diodes.com/assets/Datasheets/AP2112.pdf"
+			(at 45.72 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5"
+			(at 45.72 171.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c0696487-9fd8-4e18-bfbf-2d017204e569")
+		)
+		(pin "3"
+			(uuid "2ed17470-8291-46ec-ac87-c8d3e4390022")
+		)
+		(pin "2"
+			(uuid "45a59e56-3575-4f15-915c-1d0c64b7804f")
+		)
+		(pin "5"
+			(uuid "2e245c6d-42ba-4565-94f9-0f49f257c5a1")
+		)
+		(pin "4"
+			(uuid "b9029a35-144d-408f-9357-e2b80c187323")
+		)
+		(instances
+			(project "MBus-ESP-Adapter"
+				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
+					(reference "U4")
 					(unit 1)
 				)
 			)
@@ -8434,7 +8633,7 @@
 			(uuid "490c5537-6ae1-43fc-9266-9501fac1665f")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR011")
 					(unit 1)
@@ -8536,7 +8735,7 @@
 			(uuid "d2046895-31ee-4058-a77d-13ebacb7b418")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R16")
 					(unit 1)
@@ -8638,7 +8837,7 @@
 			(uuid "ff5d6a06-31af-4cd6-84c7-ba25bff5e3e4")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "D4")
 					(unit 1)
@@ -8742,7 +8941,7 @@
 			(uuid "a2ad731b-9051-45dc-b4fc-659131d249d7")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R8")
 					(unit 1)
@@ -8846,7 +9045,7 @@
 			(uuid "9b232ee9-5f68-410d-aad9-24e574108c2e")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R3")
 					(unit 1)
@@ -8950,7 +9149,7 @@
 			(uuid "f7255640-57c9-4da2-b66f-52ceec0f91c2")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C5")
 					(unit 1)
@@ -9051,7 +9250,7 @@
 			(uuid "e2d5de70-f9ef-429f-9157-363d14e60e06")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "J1")
 					(unit 1)
@@ -9154,7 +9353,7 @@
 			(uuid "2d8cdc0b-2b9b-4232-b401-b69e5483678d")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C2")
 					(unit 1)
@@ -9267,7 +9466,7 @@
 			(uuid "fc5be8ae-f72b-4846-85cb-bf2335600ccb")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "U2")
 					(unit 1)
@@ -9371,7 +9570,7 @@
 			(uuid "31be9df4-46b4-4607-99bf-b2be34066ebd")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R5")
 					(unit 1)
@@ -9449,7 +9648,7 @@
 			(uuid "e77f752a-c095-43e4-99d4-83cafdf03cac")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR01")
 					(unit 1)
@@ -9552,7 +9751,7 @@
 			(uuid "129ebda3-b792-47de-9da3-e97e3b52c235")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "F1")
 					(unit 1)
@@ -9656,7 +9855,7 @@
 			(uuid "531495b4-b387-4f7f-bf2a-26276a3e1f6e")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R6")
 					(unit 1)
@@ -9788,7 +9987,7 @@
 			(uuid "611b0a78-7ecb-476c-aad4-7340cb6baa95")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "Q3")
 					(unit 1)
@@ -9892,7 +10091,7 @@
 			(uuid "f8a97796-b8d2-4db1-9dd6-78e86b7a437a")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C3")
 					(unit 1)
@@ -9969,7 +10168,7 @@
 			(uuid "8fceeae4-3ae8-4ba4-9adc-3552d4599dae")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR033")
 					(unit 1)
@@ -10073,7 +10272,7 @@
 			(uuid "28fdb29f-3300-40ee-8a47-7c604cb96548")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R12")
 					(unit 1)
@@ -10151,7 +10350,7 @@
 			(uuid "cd94bdef-b73c-43dc-8197-37ee900dfd45")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR018")
 					(unit 1)
@@ -10283,7 +10482,7 @@
 			(uuid "b6ddae22-0e8b-4ce5-8791-507fa84f2f3a")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "Q2")
 					(unit 1)
@@ -10387,7 +10586,7 @@
 			(uuid "1ffda85b-1c1f-40a5-8583-dc2c3102a423")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R7")
 					(unit 1)
@@ -10464,7 +10663,7 @@
 			(uuid "0286b44a-88dd-4c48-8f14-aa5a4e28be81")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR09")
 					(unit 1)
@@ -10541,7 +10740,7 @@
 			(uuid "3cc8c257-dc71-4a64-be77-47c0370bc076")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR010")
 					(unit 1)
@@ -10643,7 +10842,7 @@
 			(uuid "81fa5101-87b5-410b-ba03-d3e67287bd35")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "SW1")
 					(unit 1)
@@ -10752,7 +10951,7 @@
 			(uuid "035b27f6-a7b6-4654-9b84-d774809241fe")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "J3")
 					(unit 1)
@@ -10856,7 +11055,7 @@
 			(uuid "b641ac2b-4e95-471c-b640-a10125193ac5")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C9")
 					(unit 1)
@@ -10934,7 +11133,7 @@
 			(uuid "6c6b4897-e375-4e5e-8c64-1d19c113fcff")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR025")
 					(unit 1)
@@ -11066,7 +11265,7 @@
 			(uuid "c8194b50-d3e9-45da-93c4-40a2455d0761")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "Q1")
 					(unit 1)
@@ -11170,7 +11369,7 @@
 			(uuid "76a40cbb-7aa7-4c05-91fa-6218ed6c5364")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R15")
 					(unit 1)
@@ -11285,7 +11484,7 @@
 			(uuid "11c7b9a5-8f7c-42df-a332-0d9c3475ed35")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "D1")
 					(unit 1)
@@ -11400,7 +11599,7 @@
 			(uuid "9d36e0a9-cc76-49dc-b73e-c495915eea91")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "D2")
 					(unit 1)
@@ -11504,7 +11703,7 @@
 			(uuid "f51d6935-60f1-4394-9af4-a64d11d53e75")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C6")
 					(unit 1)
@@ -11608,7 +11807,7 @@
 			(uuid "734d38a7-7485-4fed-864b-fbae0c88218f")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R11")
 					(unit 1)
@@ -11865,7 +12064,7 @@
 			(uuid "f5be5f93-967c-4414-a9ec-bcecad981141")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "U1")
 					(unit 1)
@@ -11943,7 +12142,7 @@
 			(uuid "150c2f8c-818a-4cbf-ab95-219599f44dcf")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR027")
 					(unit 1)
@@ -12045,7 +12244,7 @@
 			(uuid "9fc24b64-8857-4737-a91b-4a567fde4b4a")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "SW2")
 					(unit 1)
@@ -12123,7 +12322,7 @@
 			(uuid "e7fa787b-a8e4-4fa7-bdac-5bc37d07fe8a")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR05")
 					(unit 1)
@@ -12227,7 +12426,7 @@
 			(uuid "2759c13e-e224-4072-82c7-a9218ae5b54f")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C10")
 					(unit 1)
@@ -12331,7 +12530,7 @@
 			(uuid "dd6285d1-6d75-41ae-b7b6-153d0b3ab5db")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C1")
 					(unit 1)
@@ -12409,7 +12608,7 @@
 			(uuid "01025ef1-8ddb-4ee9-b260-7c27d3862e11")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR020")
 					(unit 1)
@@ -12487,7 +12686,7 @@
 			(uuid "61b04a8a-8be6-4dcb-9fd4-f74df17d2ba7")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR030")
 					(unit 1)
@@ -12564,7 +12763,7 @@
 			(uuid "7625f88c-999f-40a4-aafd-53af37217643")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR019")
 					(unit 1)
@@ -12573,7 +12772,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:USB_C_Receptacle_USB2.0_14P")
+		(lib_id "Connector:USB_C_Receptacle_USB2.0_16P")
 		(at 227.33 106.68 0)
 		(unit 1)
 		(body_style 1)
@@ -12626,7 +12825,7 @@
 				)
 			)
 		)
-		(property "Description" "USB 2.0-only 14P Type-C Receptacle connector"
+		(property "Description" "USB 2.0-only 16P Type-C Receptacle connector"
 			(at 227.33 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -12659,7 +12858,7 @@
 				)
 			)
 		)
-		(pin "S1"
+		(pin "SH"
 			(uuid "b002814e-1221-4bae-b08b-990e00ef94b1")
 		)
 		(pin "B1"
@@ -12704,8 +12903,14 @@
 		(pin "B6"
 			(uuid "d6fd728c-c1f8-4fc3-8df2-721fad8928a7")
 		)
+		(pin "B8"
+			(uuid "016e77bb-1d46-4dfe-b79f-f951f2142e4e")
+		)
+		(pin "A8"
+			(uuid "a7340dfa-2e42-4968-a282-1dda309dec9d")
+		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "J2")
 					(unit 1)
@@ -12782,7 +12987,7 @@
 			(uuid "7f1f63c4-753e-4c20-9009-f602bb6f2cb1")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR021")
 					(unit 1)
@@ -12860,113 +13065,9 @@
 			(uuid "f8c1be94-dbee-4c28-b86d-2ae3bf269caa")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR012")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Regulator_Linear:MCP1700x-330xxTT")
-		(at 45.72 168.91 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "d2b9b37d-bf90-4d06-875c-cf40cfbc2015")
-		(property "Reference" "U3"
-			(at 45.72 162.56 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "MCP1700x-330xxTT"
-			(at 45.72 165.1 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
-			(at 45.72 163.195 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "http://ww1.microchip.com/downloads/en/DeviceDoc/20001826D.pdf"
-			(at 45.72 168.91 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "250mA Low Quiscent Current LDO, 3.3V output, SOT-23"
-			(at 45.72 168.91 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer_PN" ""
-			(at 45.72 168.91 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Mouse_PN" " 579-MCP1700T3302E/TT"
-			(at 45.72 168.91 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "3"
-			(uuid "4cb2fbaf-1485-416f-b94e-0dbb1a0caf12")
-		)
-		(pin "1"
-			(uuid "a42fb90f-2b86-4955-bc22-b29e03c8aacb")
-		)
-		(pin "2"
-			(uuid "63a6f1b8-0c6e-4c8b-9fd0-16920474b234")
-		)
-		(instances
-			(project "PCB"
-				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
-					(reference "U3")
 					(unit 1)
 				)
 			)
@@ -13042,7 +13143,7 @@
 			(uuid "fc40228d-886e-464a-9ec0-f351cc464a7b")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR023")
 					(unit 1)
@@ -13146,7 +13247,7 @@
 			(uuid "eabb0c6a-06e9-4cec-896c-bae08d04f3b0")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R10")
 					(unit 1)
@@ -13224,7 +13325,7 @@
 			(uuid "1fc88703-dc97-4d84-bc7d-1a5e48cd6e4f")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR022")
 					(unit 1)
@@ -13302,7 +13403,7 @@
 			(uuid "5b3227fd-d06f-4392-a434-ac0753bd935e")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR03")
 					(unit 1)
@@ -13406,7 +13507,7 @@
 			(uuid "2b7d9ff0-aa6b-45e2-b6af-a5f17e616f15")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R19")
 					(unit 1)
@@ -13510,7 +13611,7 @@
 			(uuid "b1a2f7a7-a393-48a4-9f54-f99db113e2de")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R4")
 					(unit 1)
@@ -13614,7 +13715,7 @@
 			(uuid "967d2e50-a330-44ee-a1c4-16f684f15b26")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "C7")
 					(unit 1)
@@ -13692,7 +13793,7 @@
 			(uuid "4e4de1cb-b6bb-453e-bab2-144aeab13bd1")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR06")
 					(unit 1)
@@ -13796,7 +13897,7 @@
 			(uuid "f3bbde02-9bd3-478f-80aa-b495d03f924a")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "R14")
 					(unit 1)
@@ -13874,7 +13975,7 @@
 			(uuid "3730c7d9-610e-4d01-aa37-9b5fa6183693")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR015")
 					(unit 1)
@@ -13952,7 +14053,7 @@
 			(uuid "9b75b45a-b164-4057-bc77-d81d2b65b344")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR031")
 					(unit 1)
@@ -14030,7 +14131,7 @@
 			(uuid "3d6d2ddb-334a-4194-b9dc-59d7f60228b6")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "#PWR016")
 					(unit 1)
@@ -14145,7 +14246,7 @@
 			(uuid "175e298a-79ac-4550-84ab-f76c7dbbb692")
 		)
 		(instances
-			(project "PCB"
+			(project "MBus-ESP-Adapter"
 				(path "/e5b6d9ca-6ac8-47c6-8108-189de6594cb9"
 					(reference "D3")
 					(unit 1)
