@@ -9,6 +9,9 @@
  * a fresh telegram from a repeat. */
 static uint8_t access_no = 0;
 
+uint8_t mbus_fill_byte = 0;
+uint8_t mbus_tx_gap_ms = 0;
+
 void mbus_id_bytes(uint8_t out[4]) {
   uint32_t v = KAM_SERIAL;
   for (int i = 0; i < 4; i++) {
@@ -118,9 +121,12 @@ int mbus_build_frame(uint8_t c_field, uint8_t address,
   frame[i++] = KAM_VERSION;
   frame[i++] = KAM_MEDIUM;
   frame[i++] = access_no++;
-  frame[i++] = KAM_STATUS;
-  frame[i++] = 0x00; /* signature, unused */
-  frame[i++] = 0x00;
+  /* Status and signature are 00 00 00 on a healthy meter - the telegram's
+   * longest run of space bits, and so the first thing to fail on a marginal
+   * bus. mbus_fill_byte replaces them for the pattern test. */
+  frame[i++] = mbus_fill_byte ? mbus_fill_byte : KAM_STATUS;
+  frame[i++] = mbus_fill_byte; /* signature, unused */
+  frame[i++] = mbus_fill_byte;
 
   memcpy(&frame[i], records, records_len);
   i += records_len;
@@ -134,7 +140,18 @@ int mbus_build_frame(uint8_t c_field, uint8_t address,
 }
 
 void mbus_transmit(const uint8_t *frame, size_t len) {
-  MBUS_SERIAL.write(frame, len);
+  if (mbus_tx_gap_ms == 0) {
+    MBUS_SERIAL.write(frame, len);
+  } else {
+    /* Byte at a time, letting the line idle at mark in between. flush() first
+     * so the delay lands after the character has actually left the UART rather
+     * than after it was queued. */
+    for (size_t i = 0; i < len; i++) {
+      MBUS_SERIAL.write(frame[i]);
+      MBUS_SERIAL.flush();
+      delay(mbus_tx_gap_ms);
+    }
+  }
   mbus_tx_done();
 }
 

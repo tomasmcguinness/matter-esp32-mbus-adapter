@@ -82,7 +82,7 @@ static uint16_t heat_meter_endpoint_id = 0; // custom high-precision cluster
 #define MBUS_MODE_TEST     2
 
 #ifndef MBUS_MODE
-#define MBUS_MODE MBUS_MODE_NORMAL
+#define MBUS_MODE MBUS_MODE_TEST
 #endif
 
 #define MBUS_NKE_TEST_INTERVAL_MS 2000

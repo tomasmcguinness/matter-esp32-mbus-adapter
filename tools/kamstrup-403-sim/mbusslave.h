@@ -114,6 +114,40 @@
  * API
  * ------------------------------------------------------------------------ */
 
+/* Bench aid. When non-zero, every "don't care" byte of the telegram - the
+ * status and signature bytes of the fixed header, and all data-record values -
+ * is replaced by this fill byte. Structure, record count and frame length are
+ * untouched, so only the telegram's *bit pattern* changes.
+ *
+ * The point: 0x00 at 8E1 is a start bit, eight zero data bits and a zero parity
+ * bit - ten consecutive low (space) bit-times, broken only by a single 417 us
+ * stop bit at 2400 baud. On M-Bus a space is the slave sinking 11-20 mA, so a
+ * run of 0x00 bytes is a sustained high-current burst. 0x55 never puts more
+ * than two low bit-times together. Comparing the two at the same frame length
+ * separates "the bus cannot hold a long space" from "the frame is too long".
+ *
+ * 0 = real values. Set from the serial console: 'p' = 0x55, 'r' = real. */
+extern uint8_t mbus_fill_byte;
+
+/* Idle mark time inserted after every transmitted byte, in milliseconds.
+ *
+ * 0 = characters back-to-back, which is what a real MULTICAL 403 does and what
+ * EN 13757-2 expects (the gap between characters of one telegram is capped at
+ * around 11 bit times, ~4.6 ms at 2400 baud).
+ *
+ * HWHardsoft/Arduino-MBUS-Meter - the sketch this one is modelled on - instead
+ * delays 10 ms after every byte at 2400 baud (transmit_delay_time()). That is
+ * outside the inter-character limit, and it makes the frame take 919 ms rather
+ * than 289 ms, but it also drops the proportion of time the slave spends
+ * sinking space current from 94% to 38% and gives the bus 10.4 ms of idle mark
+ * to recover in between. A master whose receive path cannot hold a sustained
+ * space therefore passes with that sketch and fails with this one.
+ *
+ * Keep this at 0 for honest testing. Raise it only to reproduce the reference
+ * sketch's behaviour, or to measure how much recovery time a marginal master
+ * needs - the smallest gap that decodes cleanly is that number. */
+extern uint8_t mbus_tx_gap_ms;
+
 /* Encode KAM_SERIAL as the four BCD identification bytes, LSB first. */
 void mbus_id_bytes(uint8_t out[4]);
 

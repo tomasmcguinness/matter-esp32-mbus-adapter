@@ -43,6 +43,15 @@
 
 #define RECORDS_MAX 64
 
+/* How many of the eight data records to actually send. Lowering this shortens
+ * the telegram without changing anything else about it, which is how you tell
+ * a time/energy-limited truncation on the bus from an index-limited one: send
+ * fewer records and see whether the master's cut-off point follows the byte
+ * count or stays put. Settable at runtime by typing 1..8 in the serial
+ * monitor - see loop(). 8 = the full 63-byte MULTICAL 403 telegram. */
+#define SIM_RECORDS_ALL 8
+static uint8_t sim_records = SIM_RECORDS_ALL;
+
 /* --------------------------------------------------------------------------
  * Simulation
  *
@@ -115,6 +124,7 @@ static void sim_tick(void) {
  * Record encoding
  * ------------------------------------------------------------------------ */
 static uint8_t put_u32(uint8_t *p, uint8_t dif, uint8_t vif, uint32_t v) {
+  if (mbus_fill_byte) v = 0x01010101UL * mbus_fill_byte;
   p[0] = dif;
   p[1] = vif;
   p[2] = (uint8_t)(v);
@@ -125,6 +135,7 @@ static uint8_t put_u32(uint8_t *p, uint8_t dif, uint8_t vif, uint32_t v) {
 }
 
 static uint8_t put_i16(uint8_t *p, uint8_t dif, uint8_t vif, int16_t v) {
+  if (mbus_fill_byte) v = (int16_t)(uint16_t)(0x0101U * mbus_fill_byte);
   p[0] = dif;
   p[1] = vif;
   p[2] = (uint8_t)((uint16_t)v);
@@ -137,23 +148,80 @@ static uint8_t put_i16(uint8_t *p, uint8_t dif, uint8_t vif, int16_t v) {
  * function edit. */
 static uint8_t encode_records(uint8_t *r) {
   uint8_t n = 0;
-  n += put_u32(r + n, DIF_INT32, VIF_ENERGY_KWH,
-               (uint32_t)(meter.energy_wh / 1000.0));
-  n += put_u32(r + n, DIF_INT32, VIF_VOLUME_10L,
-               (uint32_t)(meter.volume_l / 10.0));
-  n += put_u32(r + n, DIF_INT32, VIF_ON_TIME_H,
-               (uint32_t)meter.on_time_h);
-  n += put_u32(r + n, DIF_INT32, VIF_POWER_100W,
-               (uint32_t)lround(meter.power_w / 100.0));
-  n += put_u32(r + n, DIF_INT32, VIF_FLOW_LPH,
-               (uint32_t)lround(meter.flow_lph));
-  n += put_i16(r + n, DIF_INT16, VIF_FLOW_TEMP,
-               (int16_t)lround(meter.t_flow_c * 100.0));
-  n += put_i16(r + n, DIF_INT16, VIF_RETURN_TEMP,
-               (int16_t)lround(meter.t_return_c * 100.0));
-  n += put_i16(r + n, DIF_INT16, VIF_TEMP_DIFF,
-               (int16_t)lround(meter.delta_k * 100.0));
+  uint8_t k = 0; /* records emitted so far */
+
+  if (k++ < sim_records)
+    n += put_u32(r + n, DIF_INT32, VIF_ENERGY_KWH,
+                 (uint32_t)(meter.energy_wh / 1000.0));
+  if (k++ < sim_records)
+    n += put_u32(r + n, DIF_INT32, VIF_VOLUME_10L,
+                 (uint32_t)(meter.volume_l / 10.0));
+  if (k++ < sim_records)
+    n += put_u32(r + n, DIF_INT32, VIF_ON_TIME_H,
+                 (uint32_t)meter.on_time_h);
+  if (k++ < sim_records)
+    n += put_u32(r + n, DIF_INT32, VIF_POWER_100W,
+                 (uint32_t)lround(meter.power_w / 100.0));
+  if (k++ < sim_records)
+    n += put_u32(r + n, DIF_INT32, VIF_FLOW_LPH,
+                 (uint32_t)lround(meter.flow_lph));
+  if (k++ < sim_records)
+    n += put_i16(r + n, DIF_INT16, VIF_FLOW_TEMP,
+                 (int16_t)lround(meter.t_flow_c * 100.0));
+  if (k++ < sim_records)
+    n += put_i16(r + n, DIF_INT16, VIF_RETURN_TEMP,
+                 (int16_t)lround(meter.t_return_c * 100.0));
+  if (k++ < sim_records)
+    n += put_i16(r + n, DIF_INT16, VIF_TEMP_DIFF,
+                 (int16_t)lround(meter.delta_k * 100.0));
   return n;
+}
+
+/* Serial-console knobs, applied between polls so a bus fault can be bisected
+ * without reflashing:
+ *   1..8  how many data records to send  (varies frame LENGTH)
+ *   p     fill values with 0x55          (varies BIT PATTERN, same length)
+ *   r     back to real meter values
+ *   g     cycle the inter-byte gap 0 -> 2 -> 5 -> 10 ms -> 0 (varies how long
+ *         the bus is left sinking space current; 10 ms is what the HWHardsoft
+ *         reference sketch does, 0 is what a real meter does)
+ * Length and pattern are independent, which is the whole point - see
+ * mbus_fill_byte in mbusslave.h. */
+static void poll_console(void) {
+  while (DEBUG_SERIAL.available()) {
+    int c = DEBUG_SERIAL.read();
+    if (c == 'g') {
+      mbus_tx_gap_ms = (mbus_tx_gap_ms == 0)   ? 2
+                     : (mbus_tx_gap_ms == 2)   ? 5
+                     : (mbus_tx_gap_ms == 5)   ? 10
+                                               : 0;
+      DEBUG_SERIAL.print(F("inter-byte gap -> "));
+      DEBUG_SERIAL.print(mbus_tx_gap_ms);
+      DEBUG_SERIAL.print(F(" ms ("));
+      DEBUG_SERIAL.print(mbus_tx_gap_ms ? F("padded") : F("back-to-back, like a real meter"));
+      DEBUG_SERIAL.println(F(")"));
+      continue;
+    }
+    if (c == 'p' || c == 'r') {
+      mbus_fill_byte = (c == 'p') ? 0x55 : 0x00;
+      DEBUG_SERIAL.print(F("fill -> "));
+      if (mbus_fill_byte) DEBUG_SERIAL.println(F("0x55 (no long space runs)"));
+      else DEBUG_SERIAL.println(F("real values (zero-heavy)"));
+      continue;
+    }
+    if (c < '1' || c > '0' + SIM_RECORDS_ALL) continue;
+    sim_records = (uint8_t)(c - '0');
+    /* L = C A CI + 12-byte header + records; frame = 4 + L + 2. */
+    uint8_t records[RECORDS_MAX];
+    uint8_t rl = encode_records(records);
+    DEBUG_SERIAL.print(F("records -> "));
+    DEBUG_SERIAL.print(sim_records);
+    DEBUG_SERIAL.print(F(", telegram now "));
+    DEBUG_SERIAL.print(4 + (3 + 12 + rl) + 2);
+    DEBUG_SERIAL.print(F(" bytes ("));
+    DEBUG_SERIAL.print((4 + (3 + 12 + rl) + 2) * 11.0 / MBUS_BAUD_RATE_DEFAULT * 1000.0, 0);
+    DEBUG_SERIAL.println(F(" ms on the wire)"));
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -265,6 +333,7 @@ void setup() {
 
 void loop() {
   sim_tick();
+  poll_console();
 
   uint8_t rx[MBUS_DATA_SIZE];
   int n = mbus_get_response(rx, sizeof(rx));

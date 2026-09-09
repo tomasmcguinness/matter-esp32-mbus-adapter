@@ -26,6 +26,19 @@
 
 #define MBUS_RX_BUF_SIZE 512
 
+// Timeouts. uart_read_bytes() does NOT decrement its ticks_to_wait between
+// ring-buffer chunks (esp_driver_uart/src/uart.c), so one call bounds the gap
+// between chunks, never the whole read. Treat it as a character-gap timer and
+// do the framing here.
+#define MBUS_RESP_TIMEOUT_MS 1500  // silence after REQ_UD2 before we give up
+#define MBUS_CHAR_TIMEOUT_MS  250  // gap between characters *within* a frame.
+                                   // One byte at 2400 8E1 is 4.6 ms and EN
+                                   // 13757-2 allows 11 bit times between
+                                   // characters, so this is ~50x generous -
+                                   // but short enough that a slave that dies
+                                   // mid-telegram is reported as a stall
+                                   // rather than as a mystery short read.
+
 // Hex-dump the whole RX burst before any framing checks. Without this every
 // early return below (bad L/L, missing stop byte, checksum mismatch) throws
 // away the only evidence of what the meter actually sent. Set to 0 in
@@ -41,6 +54,22 @@ static uint8_t mbus_checksum(const uint8_t *data, size_t len)
         cs = (uint8_t)(cs + data[i]);
     }
     return cs;
+}
+
+// Read exactly `want` bytes, tolerating the burst arriving in chunks.
+// Returns the number actually read; < want means `timeout_ms` elapsed with the
+// bus idle.
+static int mbus_read_exact(uint8_t *dst, int want, int timeout_ms)
+{
+    int got = 0;
+    while (got < want) {
+        int n = uart_read_bytes(MBUS_UART, dst + got, want - got, pdMS_TO_TICKS(timeout_ms));
+        if (n <= 0) {
+            break;
+        }
+        got += n;
+    }
+    return got;
 }
 
 static void mbus_send_short_frame(uint8_t c, uint8_t addr)
@@ -117,51 +146,77 @@ esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, s
     // Ask for user data (class 2).
     mbus_send_short_frame(MBUS_C_REQ_UD2, primary_addr);
 
-    // Read the whole response burst. A meter that has no data may reply with a
-    // single-byte ACK (0xE5); a data response is a long frame.
+    // Hunt for "68 L L 68", one byte at a time. Leading bytes are bus
+    // turnaround noise or an echo of our own request. A bare 0x68 is not a
+    // reliable marker on its own - the 403 telegram carries 0x68 inside the
+    // energy record (04 06 68 10 00 00) - so a failed header check has to
+    // resync rather than give up, or a lost frame start is reported as a
+    // corrupt one.
     static uint8_t rx[MBUS_RX_BUF_SIZE];
-    int len = uart_read_bytes(MBUS_UART, rx, sizeof(rx), pdMS_TO_TICKS(1500));
-    if (len <= 0) {
-        ESP_LOGW(TAG, "No response from meter at 0x%02X", primary_addr);
-        return ESP_ERR_TIMEOUT;
+    int timeout_ms = MBUS_RESP_TIMEOUT_MS;
+    int skipped = 0;
+    uint8_t l1 = 0;
+    while (true) {
+        if (mbus_read_exact(&rx[0], 1, timeout_ms) != 1) {
+            if (skipped == 0) {
+                ESP_LOGW(TAG, "No response from meter at 0x%02X", primary_addr);
+                return ESP_ERR_TIMEOUT;
+            }
+            ESP_LOGW(TAG, "%d byte(s) before timeout, never saw a long-frame header", skipped);
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        // Once anything is coming in, the rest of the burst is close behind.
+        timeout_ms = MBUS_CHAR_TIMEOUT_MS;
+
+        if (rx[0] != MBUS_START_LONG) {
+            if (rx[0] == MBUS_ACK && skipped == 0) {
+                ESP_LOGW(TAG, "Meter ACKed REQ_UD2 - no class 2 data");
+                return ESP_ERR_INVALID_RESPONSE;
+            }
+            ESP_LOGD(TAG, "skipping 0x%02X before frame start", rx[0]);
+            skipped++;
+            continue;
+        }
+
+        // Long frame layout: 68 L L 68 [C A CI ...data...] CS 16
+        if (mbus_read_exact(&rx[1], 3, MBUS_CHAR_TIMEOUT_MS) != 3) {
+            ESP_LOGW(TAG, "Frame stalled in header (after 0x68)");
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        if (rx[1] == rx[2] && rx[3] == MBUS_START_LONG) {
+            l1 = rx[1];
+            break;
+        }
+        ESP_LOGD(TAG, "not a header: 68 %02X %02X %02X - resyncing", rx[1], rx[2], rx[3]);
+        skipped += 4;
     }
+
+    // Remaining bytes for this frame: L user bytes + CS + STOP.
+    int rest = (int)l1 + 2;
+    int got = mbus_read_exact(&rx[4], rest, MBUS_CHAR_TIMEOUT_MS);
+    int frame_len = 4 + rest;
 
 #if MBUS_LOG_RAW_RX
-    ESP_LOGI(TAG, "RX burst, %d byte(s):", len);
-    ESP_LOG_BUFFER_HEXDUMP(TAG, rx, len, ESP_LOG_INFO);
+    ESP_LOGI(TAG, "RX frame, %d of %d byte(s):", 4 + got, frame_len);
+    ESP_LOG_BUFFER_HEXDUMP(TAG, rx, 4 + got, ESP_LOG_INFO);
 #endif
 
-    // Find the start of the long frame (skip any leading ACK / echo bytes).
-    int i = 0;
-    while (i < len && rx[i] != MBUS_START_LONG) {
-        i++;
-    }
-    if (len - i < 6) {
-        ESP_LOGW(TAG, "Response too short (%d bytes)", len);
+    if (got != rest) {
+        // The bus went quiet part-way through the telegram. That is a
+        // transmitter/bus problem, not a framing one: the master waited
+        // MBUS_CHAR_TIMEOUT_MS with nothing arriving, where the remaining
+        // bytes were due within a few ms of each other.
+        ESP_LOGW(TAG, "Frame stalled: %d of %d bytes, then %d ms idle",
+                 4 + got, frame_len, MBUS_CHAR_TIMEOUT_MS);
         return ESP_ERR_INVALID_RESPONSE;
     }
 
-    // Long frame layout: 68 L L 68 [C A CI ...data...] CS 16
-    uint8_t l1 = rx[i + 1];
-    uint8_t l2 = rx[i + 2];
-    if (l2 != l1 || rx[i + 3] != MBUS_START_LONG) {
-        ESP_LOGW(TAG, "Bad long-frame header");
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-
-    // Total bytes for this frame: 4 header + L user bytes + CS + STOP.
-    int frame_len = 4 + l1 + 2;
-    if (i + frame_len > len) {
-        ESP_LOGW(TAG, "Truncated frame: need %d, have %d", frame_len, len - i);
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-
-    const uint8_t *user = &rx[i + 4];      // C A CI data...
-    uint8_t rx_cs = rx[i + 4 + l1];
-    uint8_t rx_stop = rx[i + 4 + l1 + 1];
+    const uint8_t *user = &rx[4];          // C A CI data...
+    uint8_t rx_cs = rx[4 + l1];
+    uint8_t rx_stop = rx[4 + l1 + 1];
 
     if (rx_stop != MBUS_STOP) {
-        ESP_LOGW(TAG, "Missing stop byte");
+        ESP_LOGW(TAG, "Missing stop byte (got 0x%02X)", rx_stop);
         return ESP_ERR_INVALID_RESPONSE;
     }
     uint8_t calc_cs = mbus_checksum(user, l1);
