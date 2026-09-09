@@ -1,0 +1,17 @@
+# Matter over Wi-Fi.
+#
+# Apply on top of the common + C6 defaults:
+#   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.wifi"
+
+# Disable OpenThread (Wi-Fi-only device)
+CONFIG_OPENTHREAD_ENABLED=n
+
+# Enable Wi-Fi station (Matter over Wi-Fi)
+CONFIG_ENABLE_WIFI_STATION=y
+
+# Wi-Fi / BLE coexistence is required while commissioning over BLE
+CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y
+
+# IPv6 autoconfig is handled by lwIP on Wi-Fi
+CONFIG_LWIP_IPV6_AUTOCONFIG=y
+CONFIG_LWIP_IPV6_NUM_ADDRESSES=6

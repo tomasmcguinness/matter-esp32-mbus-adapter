@@ -53,18 +53,75 @@ currently defaults to `MBUS_MODE_TEST`.
 Requires ESP-IDF (with `esp_matter` pulled in as a managed component — see
 `firmware/main/idf_component.yml`).
 
+The radio is chosen by an explicit defaults overlay, so there is no single
+`idf.py build` — each variant gets its own build directory and generated config,
+and the two never collide. `set-target` is needed once per build directory.
+
 ```sh
 cd firmware
-idf.py set-target esp32c6
-idf.py build flash monitor
+
+# Thread — the supported configuration
+idf.py -B build.thread -DSDKCONFIG=sdkconfig.thread \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.thread" \
+  set-target esp32c6
+idf.py -B build.thread -DSDKCONFIG=sdkconfig.thread \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.thread" \
+  build flash monitor
+
+# Wi-Fi — read the warning in sdkconfig.defaults.wifi first
+idf.py -B build.wifi -DSDKCONFIG=sdkconfig.wifi \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.wifi" \
+  set-target esp32c6
+idf.py -B build.wifi -DSDKCONFIG=sdkconfig.wifi \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.wifi" \
+  build flash monitor
 ```
 
-The device is Thread-only (Wi-Fi is disabled); BLE is used for commissioning.
+`SDKCONFIG_DEFAULTS` must be passed to **`set-target` as well as `build`**.
+`set-target` is what creates the config file, and defaults are only ever applied
+when the file is created — pass it only to `build` and you silently get a config
+with no radio overlay at all.
+
+`sdkconfig.defaults.esp32c6` holds the settings common to both and selects no
+radio. IDF appends `<file>.esp32c6` to every entry in `SDKCONFIG_DEFAULTS`, so it
+is applied automatically and only the radio overlay has to be named.
+
+Note that editing a defaults file does **not** update an existing generated
+config — IDF only seeds one that does not yet exist. That is why each variant has
+its own `-DSDKCONFIG`; if you do need to re-seed one, delete it first.
+
+BLE is used for commissioning in both cases.
+
+**Wi-Fi does not work on revision F hardware.** The 3V3 LDO (U3, `MCP1700T-3302E/TT`)
+supplies 250 mA against a Wi-Fi TX peak north of 300 mA, so the board
+brownout-resets at association and never finishes starting. Thread's 802.15.4 TX
+peak fits the budget. See `firmware/sdkconfig.defaults.wifi` for the full
+measurements and what a hardware fix would need.
+
+### Factory reset
+
+**SW2** is the ESP32-C6 BOOT button (net `BOOT` → IO9). Hold it for **five
+seconds while the device is running** to wipe the Matter credentials from NVS and
+reboot uncommissioned. The status LED (D3, net `LED` → IO15) blinks faster as the
+hold progresses and goes solid at the moment the reset commits, so the button can
+be released once it stops flashing.
+
+Release before five seconds and nothing happens — the aborted hold is logged with
+its elapsed time.
+
+IO9 is a strapping pin, so holding SW2 *across* a power-up or an SW1 press puts
+the chip into serial-download mode and the application never starts. That is
+useful for flashing, but it is **not** the factory-reset gesture — the device has
+to already be running.
+
+SW1 pulls `EN` low and is a plain hardware reset; it does not touch NVS.
 
 ## Known limitations
 
 - Matter publishing is commented out in `main.cpp` while bench testing continues.
-- The LDO is small and might not be able to provide WiFi.
+- The LDO (U3, `MCP1700`, 250 mA) cannot supply Wi-Fi. Confirmed on the bench:
+  10 brownout resets in 15 s, every one at Wi-Fi association. Thread works; Wi-Fi
+  needs more bulk capacitance on 3V3 and/or a 500-600 mA regulator.
 - The custom cluster uses the Matter **test** vendor ID `0xFFF1`. A real product
   would need an allocated Vendor ID.
 - Raw RX hex logging is enabled in `mbus.cpp` (`MBUS_LOG_RAW_RX`) and should be
