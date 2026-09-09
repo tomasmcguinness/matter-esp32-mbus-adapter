@@ -219,8 +219,10 @@ void setup() {
 
   DEBUG_SERIAL.begin(115200);
 
+#if !MBUS_SERIAL_PINS_FIXED
   MBUS_SERIAL.setTX(MBUS_TX_PIN);
   MBUS_SERIAL.setRX(MBUS_RX_PIN);
+#endif
   MBUS_SERIAL.begin(mbus_baud_rate, MBUS_SERIAL_CONFIG);
   delay(1000); /* let the UART settle, or the first frame is garbage */
 
@@ -234,6 +236,15 @@ void setup() {
   DEBUG_SERIAL.println(mbus_address, HEX);
   DEBUG_SERIAL.print(F("baud rate: "));
   DEBUG_SERIAL.println(mbus_baud_rate);
+#if MBUS_SERIAL_PINS_FIXED
+  DEBUG_SERIAL.println(F("uart pins: core default for Serial1 (GP0 TX, GP1 RX)"));
+#else
+  DEBUG_SERIAL.print(F("uart pins: GP"));
+  DEBUG_SERIAL.print(MBUS_TX_PIN);
+  DEBUG_SERIAL.print(F(" TX, GP"));
+  DEBUG_SERIAL.print(MBUS_RX_PIN);
+  DEBUG_SERIAL.println(F(" RX"));
+#endif
   DEBUG_SERIAL.print(F("serial (secondary address): "));
   DEBUG_SERIAL.println(KAM_SERIAL);
   DEBUG_SERIAL.print(F("id bytes: "));

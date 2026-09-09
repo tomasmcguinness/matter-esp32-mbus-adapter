@@ -24,11 +24,32 @@
 #define MBUS_TX_PIN 0
 #define MBUS_RX_PIN 1
 
-/* arduino-pico's Serial1 is a SerialUART, NOT a HardwareSerial, so the
- * reference sketch's `HardwareSerial *MBusSerial` will not compile here.
- * Plain aliases sidestep the whole problem. */
+/* Neither RP2040 core gives Serial1 as a HardwareSerial, so the reference
+ * sketch's `HardwareSerial *MBusSerial` will not compile on either. Plain
+ * aliases sidestep the whole problem. */
 #define MBUS_SERIAL  Serial1
 #define DEBUG_SERIAL Serial
+
+/* Two Arduino cores can target the Pico, and they differ on pin assignment:
+ *
+ *   earlephilhower's arduino-pico - Serial1 is a SerialUART whose TX and RX can
+ *     be moved to another valid pin pair at runtime via setTX()/setRX().
+ *
+ *   Arduino's Mbed OS RP2040 core - Serial1 is an arduino::UART whose pins are
+ *     fixed when it is constructed; there is no setTX/setRX. Its Serial1 is
+ *     already on digital 0/1, which is GP0/GP1, so nothing needs moving and
+ *     MBUS_TX_PIN/MBUS_RX_PIN below simply document the wiring.
+ *
+ * Both honour SERIAL_8E1, which is the part M-Bus actually depends on.
+ * If you are on some third core whose Serial1 has no setTX/setRX, define
+ * MBUS_SERIAL_PINS_FIXED=1 and wire the meter to that core's UART pins. */
+#ifndef MBUS_SERIAL_PINS_FIXED
+#if defined(ARDUINO_ARCH_MBED)
+#define MBUS_SERIAL_PINS_FIXED 1
+#else
+#define MBUS_SERIAL_PINS_FIXED 0
+#endif
+#endif
 
 /* Link settings. The source of truth is the master:
  *   firmware/main/mbus.cpp:61-73 - 2400 baud, 8 data bits, EVEN parity, 1 stop
