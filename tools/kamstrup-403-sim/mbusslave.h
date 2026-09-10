@@ -140,13 +140,49 @@
  *   sagging back to mark, not a framing slip.
  *
  * Longest run is NOT the discriminator: 0x04 and 0x07 share a 5-bit run and
- * only 0x04 fails. Total space time is charge drawn, which is what a reservoir
- * cares about. See mbus_tx_gap_us for the recovery side of the same effect.
+ * only 0x04 fails. See mbus_tx_gap_us for the recovery side of the effect.
  *
- * So bit pattern IS a variable, alongside elapsed transmit time. To bisect the
- * cliff, fill with a low-popcount byte: every payload character is then
- * vulnerable rather than just the DIF/VIF bytes, and the first corrupt index
- * in the master's hexdump reads the cliff position off directly.
+ * A 0x11 fill (8 space bits, 73% of the character sinking current, against
+ * 0x55's 6 bits and 55%) then sharpened it:
+ *
+ *   The state that decides failure is built by the PRECEDING traffic. Sent
+ *   index 19 is the byte 0x04 in both fills, at the same position in the
+ *   telegram. Under 0x55 it decodes; under 0x11 it is the first byte to
+ *   corrupt. Nothing about the character or its position changed - only what
+ *   ran before it.
+ *
+ *   Accumulated charge is NOT the invariant either. 0x11 first fails after 128
+ *   space bit-times of transmission, 0x55 survives to 200. A fixed charge
+ *   budget would have put both at the same number, so this is a droop with a
+ *   recovery path - recent duty matters more than the total. Fitting a leaky
+ *   integrator to the four failures so far only works at tau ~ 100 bit-times
+ *   (~42 ms) and separates pass from fail by 2%, which is not a number worth
+ *   trusting. It needs a duty sweep: 0xFF 18%, 0x3F 36%, 0x55 55%, 0x11 73%,
+ *   0x00 91%, recording the first corrupt index for each. 0x03 against 0x11 is
+ *   the control - same 73% duty, runs of 7 and 4 - and separates duty from run
+ *   structure.
+ *
+ *   Corruption costs whole CHARACTERS, not just bits. Once a space sags to
+ *   mark the receiver loses character framing and re-triggers on a data bit as
+ *   a false start bit. Reconstructing one 0x11 telegram bit by bit, all 39
+ *   received bytes sat at monotonically advancing offsets in the transmitted
+ *   stream, but 6 of them were read at phases of +2 to +9 bits and 24 sent
+ *   characters produced no received character at all.
+ *
+ *   So "Frame stalled: N of M bytes" from the master does NOT mean the slave
+ *   stopped talking. In that telegram the trailing 0x16 was not the stop byte;
+ *   it was sent index 55 read 7 bits out of phase, and the slave transmitted
+ *   all 63 characters. Read a short frame as lost framing until the bit-level
+ *   reconstruction says otherwise.
+ *
+ * Not the master's UART driver: the FRAM_ERR and PARITY_ERR paths in
+ * esp_driver_uart (checked against ESP-IDF v5.5.4, the version firmware/ builds
+ * against) do not reset the RX FIFO - only FIFO overflow and the RS485 modes
+ * do - so a bad character does not take buffered good ones with it.
+ *
+ * To bisect the cliff, fill with a low-popcount byte: every payload character
+ * is then vulnerable rather than just the DIF/VIF bytes, and the first corrupt
+ * index in the master's hexdump reads the cliff position off directly.
  *
  *   0x55   6 space bits of 11, longest run  2  - healthy, the default probe
  *   0x11   8 of 11, longest run  4             - vulnerable, short runs
