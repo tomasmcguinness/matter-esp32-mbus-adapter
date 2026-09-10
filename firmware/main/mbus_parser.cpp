@@ -227,9 +227,55 @@ static const vif_test_def_t kVifTest[] = {
     { 0xFD40, 16,  -9, "Voltage",              "V"     },
     { 0xFD50, 16, -12, "Current",              "A"     },
     { 0xFD17,  1,   0, "Error flags",          ""      },
+    { 0xFD08,  1,   0, "Access number",        ""      },
+    { 0xFD09,  1,   0, "Medium",               ""      },
+    { 0xFD0A,  1,   0, "Manufacturer",         ""      },
+    { 0xFD0B,  1,   0, "Parameter set id",     ""      },
+    { 0xFD0C,  1,   0, "Model / version",      ""      },
+    { 0xFD0D,  1,   0, "Hardware version",     ""      },
+    { 0xFD0F,  1,   0, "Software version",     ""      },
+    { 0xFD10,  1,   0, "Customer location",    ""      },
+    { 0xFD11,  1,   0, "Customer",             ""      },
+    { 0xFD18,  1,   0, "Error mask",           ""      },
+    { 0xFD1D,  1,   0, "Response delay time",  ""      },
+    { 0xFD1E,  1,   0, "Retry",                ""      },
+    { 0xFD3C,  1,   0, "Dimensionless",        ""      },
+    { 0xFD60,  1,   0, "Reset counter",        ""      },
+    { 0xFD61,  1,   0, "Cumulation counter",   ""      },
+    { 0xFD63,  1,   0, "Day of week",          ""      },
+    { 0xFD64,  1,   0, "Week number",          ""      },
     // --- 0xFB extension table ---
+    { 0xFB00,  2,  -1, "Energy",               "MWh"   },
+    { 0xFB08,  2,  -1, "Energy",               "GJ"    },
+    { 0xFB10,  2,   2, "Volume",               "m^3"   },
+    { 0xFB18,  2,   2, "Mass",                 "t"     },
     { 0xFB21,  1,  -1, "Volume",               "ft^3"  },
+    { 0xFB28,  2,  -1, "Power",                "MW"    },
+    { 0xFB30,  2,  -1, "Power",                "GJ/h"  },
+    { 0xFB58,  4,  -3, "Flow temperature",     "degF"  },
+    { 0xFB5C,  4,  -3, "Return temperature",   "degF"  },
+    { 0xFB60,  4,  -3, "Temperature diff",     "degF"  },
+    { 0xFB64,  4,  -3, "External temperature", "degF"  },
     { 0xFB78,  8,  -3, "Max power",            "W"     },
+    // --- 0xFF: manufacturer specific ---
+    //
+    // EN 13757-3 assigns 0xFF no meaning, and no public table decodes it -
+    // libmbus stops at "manufacturer specific". These two were derived from a
+    // live MULTICAL 403 telegram rather than looked up, so treat them as
+    // evidence-backed rather than authoritative.
+    //
+    // They are Kamstrup's E8/E9: the volume-weighted temperature integrals the
+    // meter keeps so it can report average T1/T2. (E8 - E9)/V is the lifetime
+    // average dT, and V * dT * 1.163 kWh/m^3/K reproduced the meter's own
+    // energy register to within +0.7% on BOTH the live records and the
+    // target-date (storage 1) set - two independent checks on one telegram.
+    //
+    // FF 16, FF 17, FF 1A and FF 22 are also present on a 403 and remain
+    // unmapped on purpose: guessing them would print confident nonsense, which
+    // is the exact failure walk_is_clean() was written to avoid. They log raw,
+    // which is what identifying them from the meter's own display needs.
+    { 0xFF07,  1,   0, "Volume x flow temp",   "m^3*degC" },
+    { 0xFF08,  1,   0, "Volume x return temp", "m^3*degC" },
     // --- primary table: the real heat meter ---
     { 0x00,    8,  -3, "Energy",               "Wh"    },
     { 0x08,    8,   0, "Energy",               "J"     },
@@ -240,6 +286,8 @@ static const vif_test_def_t kVifTest[] = {
     { 0x28,    8,  -3, "Power",                "W"     },
     { 0x30,    8,   0, "Power",                "J/h"   },
     { 0x38,    8,  -6, "Volume flow",          "m^3/h" },
+    { 0x40,    8,  -7, "Volume flow ext",      "m^3/min" },
+    { 0x48,    8,  -9, "Volume flow ext",      "m^3/s" },
     { 0x50,    8,  -3, "Mass flow",            "kg/h"  },
     { 0x58,    4,  -3, "Flow temperature",     "degC"  },
     { 0x5C,    4,  -3, "Return temperature",   "degC"  },
@@ -248,8 +296,12 @@ static const vif_test_def_t kVifTest[] = {
     { 0x68,    4,  -3, "Pressure",             "bar"   },
     { 0x6C,    1,   0, "Date",                 ""      },
     { 0x6D,    1,   0, "Date/time",            ""      },
+    { 0x6E,    1,   0, "Units for H.C.A.",     ""      },
+    { 0x70,    4,   0, "Averaging duration",   ""      },
+    { 0x74,    4,   0, "Actuality duration",   ""      },
     { 0x78,    1,   0, "Fabrication number",   ""      },
     { 0x79,    1,   0, "Enhanced identification", ""   },
+    { 0x7A,    1,   0, "Bus address",          ""      },
 };
 
 // Find the row covering `key`. On a hit `*exp_out` gets the decimal exponent.
@@ -421,6 +473,28 @@ static bool walk_is_clean(const walk_stats_t *st, size_t len)
         && st->consumed == len;
 }
 
+// Weaker test: the walk never ran off the end and consumed the block exactly,
+// but some records carry VIFs the table does not know.
+//
+// No real meter can pass walk_is_clean(). A MULTICAL 403 sends eight records
+// under VIF 0xFF, which EN 13757-3 defines as manufacturer-specific and which
+// no public table decodes, so demanding zero unknowns is satisfiable only by
+// the bench simulator. That is why a genuine 205-byte telegram reported "no
+// candidate offset produced a clean walk" while decoding perfectly.
+//
+// Act on this ONLY for the offset the CI field declares. On its own it does not
+// discriminate: that same 403 telegram walks to exactly the end from offsets 3,
+// 7 and 15, so picking the structural walk with the most records would choose
+// +3 and print plausible-looking rubbish - precisely what walk_is_clean() was
+// written to prevent. CI plus an exact walk is two independent confirmations;
+// an exact walk alone is one.
+static bool walk_is_structural(const walk_stats_t *st, size_t len)
+{
+    return !st->overrun
+        && st->records > 0
+        && st->consumed == len;
+}
+
 // Record offset implied by the CI field, or 0 if the CI is not one we know.
 static size_t declared_record_offset(uint8_t ci)
 {
@@ -467,6 +541,8 @@ void mbus_parse_test(const uint8_t *user, size_t len)
     // to a "best effort" offset -- a mis-aligned walk produces plausible-looking
     // wrong values, which is worse than reporting nothing.
     bool declared_clean = false;
+    bool declared_structural = false;
+    int declared_unmapped = 0;
     size_t chosen = 0;
     int chosen_records = 0;
     int clean_count = 0;
@@ -488,6 +564,11 @@ void mbus_parse_test(const uint8_t *user, size_t len)
                      (unsigned)st.consumed, (unsigned)len, clean ? "  CLEAN" : "");
         }
 
+        if (off == declared && walk_is_structural(&st, len)) {
+            declared_structural = true;
+            declared_unmapped = st.unknown + st.nonnumeric;
+        }
+
         if (!clean) {
             continue;
         }
@@ -499,6 +580,18 @@ void mbus_parse_test(const uint8_t *user, size_t len)
             chosen = off;
             chosen_records = st.records;
         }
+    }
+
+    // The CI field declared this offset and the walk consumed the block exactly.
+    // Trust it even with unmapped records: they log raw, which is strictly more
+    // information than refusing to decode the telegram at all.
+    if (declared_structural && !declared_clean) {
+        ESP_LOGI(TAG, "CI 0x%02X declares +%u and it walks the block exactly; %d record(s) "
+                      "carry VIFs outside the table and will log raw",
+                 ci, (unsigned)declared, declared_unmapped);
+        ESP_LOGI(TAG, "Decoding from offset %u:", (unsigned)declared);
+        walk_records(user, len, declared, true);
+        return;
     }
 
     if (clean_count == 0) {
