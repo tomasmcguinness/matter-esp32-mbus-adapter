@@ -124,7 +124,7 @@ static void sim_tick(void) {
  * Record encoding
  * ------------------------------------------------------------------------ */
 static uint8_t put_u32(uint8_t *p, uint8_t dif, uint8_t vif, uint32_t v) {
-  if (mbus_fill_byte) v = 0x01010101UL * mbus_fill_byte;
+  if (mbus_fill_byte >= 0) v = 0x01010101UL * (uint8_t)mbus_fill_byte;
   p[0] = dif;
   p[1] = vif;
   p[2] = (uint8_t)(v);
@@ -135,7 +135,8 @@ static uint8_t put_u32(uint8_t *p, uint8_t dif, uint8_t vif, uint32_t v) {
 }
 
 static uint8_t put_i16(uint8_t *p, uint8_t dif, uint8_t vif, int16_t v) {
-  if (mbus_fill_byte) v = (int16_t)(uint16_t)(0x0101U * mbus_fill_byte);
+  if (mbus_fill_byte >= 0)
+    v = (int16_t)(uint16_t)(0x0101U * (uint8_t)mbus_fill_byte);
   p[0] = dif;
   p[1] = vif;
   p[2] = (uint8_t)((uint16_t)v);
@@ -180,33 +181,115 @@ static uint8_t encode_records(uint8_t *r) {
 /* Serial-console knobs, applied between polls so a bus fault can be bisected
  * without reflashing:
  *   1..8  how many data records to send  (varies frame LENGTH)
- *   p     fill values with 0x55          (varies BIT PATTERN, same length)
+ *   fHH   fill values with the byte 0xHH (varies BIT PATTERN, same length)
+ *   p     shorthand for f55
  *   r     back to real meter values
- *   g     cycle the inter-byte gap 0 -> 2 -> 5 -> 10 ms -> 0 (varies how long
- *         the bus is left sinking space current; 10 ms is what the HWHardsoft
- *         reference sketch does, 0 is what a real meter does)
+ *   g     step the inter-byte gap up: 0 -> 250 -> 500 -> 1000 -> 2000 -> 5000
+ *         -> 10000 us -> 0. Varies how long the bus is left idling at mark
+ *         between characters. 0 is what a real meter does; the stop bit alone
+ *         gives the master 417 us at 2400 baud, and 10000 us is what the
+ *         HWHardsoft reference sketch does.
  * Length and pattern are independent, which is the whole point - see
  * mbus_fill_byte in mbusslave.h. */
+static int hex_nibble(int c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+/* Space bit-times in one 8E1 character, start and parity bits included. This
+ * is how long the slave spends sinking current for that byte, and it is the
+ * variable the master's corruption tracks - see mbus_fill_byte in
+ * mbusslave.h. Even parity means popcount decides it outright. */
+static uint8_t char_space_bits(uint8_t b) {
+  uint8_t pc = 0;
+  for (uint8_t i = 0; i < 8; i++) pc = (uint8_t)(pc + ((b >> i) & 1));
+  return (uint8_t)(10 - pc - (pc & 1));
+}
+
+/* Longest unbroken run of space bits in the same character. Reported next to
+ * the space count because the two come apart: 0x11 and 0x03 carry identical
+ * charge over runs of 4 and 7. */
+static uint8_t char_max_space_run(uint8_t b) {
+  uint8_t pc = 0;
+  for (uint8_t i = 0; i < 8; i++) pc = (uint8_t)(pc + ((b >> i) & 1));
+  /* Transmission order, LSB first: start, d0..d7, even parity, stop. */
+  uint16_t bits = (uint16_t)((uint16_t)b << 1);
+  bits = (uint16_t)(bits | ((uint16_t)(pc & 1) << 9) | ((uint16_t)1 << 10));
+  uint8_t run = 0, best = 0;
+  for (uint8_t i = 0; i < 11; i++) {
+    if ((bits >> i) & 1) run = 0;
+    else if (++run > best) best = run;
+  }
+  return best;
+}
+
+static void report_fill(void) {
+  DEBUG_SERIAL.print(F("fill -> "));
+  if (mbus_fill_byte < 0) {
+    DEBUG_SERIAL.println(F("real meter values (zero-heavy)"));
+    return;
+  }
+  uint8_t b = (uint8_t)mbus_fill_byte;
+  DEBUG_SERIAL.print(F("0x"));
+  if (b < 0x10) DEBUG_SERIAL.print('0');
+  DEBUG_SERIAL.print(b, HEX);
+  DEBUG_SERIAL.print(F(" ("));
+  DEBUG_SERIAL.print(char_space_bits(b));
+  DEBUG_SERIAL.print(F(" space bits of 11, longest run "));
+  DEBUG_SERIAL.print(char_max_space_run(b));
+  DEBUG_SERIAL.println(F(")"));
+}
+
 static void poll_console(void) {
+  /* 'f' takes two hex digits. The partial value is kept across calls so the
+   * console never blocks waiting for the rest of them. */
+  static uint8_t fill_digits = 0;
+  static uint8_t fill_acc = 0;
+
   while (DEBUG_SERIAL.available()) {
     int c = DEBUG_SERIAL.read();
+
+    if (fill_digits) {
+      int nib = hex_nibble(c);
+      if (nib < 0) {
+        fill_digits = 0;
+        DEBUG_SERIAL.println(F("fill: expected two hex digits - cancelled"));
+        continue;
+      }
+      fill_acc = (uint8_t)((fill_acc << 4) | (uint8_t)nib);
+      if (--fill_digits == 0) {
+        mbus_fill_byte = (int16_t)fill_acc;
+        report_fill();
+      }
+      continue;
+    }
+
+    if (c == 'f') {
+      fill_digits = 2;
+      fill_acc = 0;
+      continue;
+    }
     if (c == 'g') {
-      mbus_tx_gap_ms = (mbus_tx_gap_ms == 0)   ? 2
-                     : (mbus_tx_gap_ms == 2)   ? 5
-                     : (mbus_tx_gap_ms == 5)   ? 10
-                                               : 0;
+      static const uint16_t steps[] = {0, 250, 500, 1000, 2000, 5000, 10000};
+      uint8_t n = sizeof(steps) / sizeof(steps[0]);
+      uint8_t i = 0;
+      while (i < n && steps[i] != mbus_tx_gap_us) i++;
+      mbus_tx_gap_us = steps[(i + 1) % n];
       DEBUG_SERIAL.print(F("inter-byte gap -> "));
-      DEBUG_SERIAL.print(mbus_tx_gap_ms);
-      DEBUG_SERIAL.print(F(" ms ("));
-      DEBUG_SERIAL.print(mbus_tx_gap_ms ? F("padded") : F("back-to-back, like a real meter"));
+      DEBUG_SERIAL.print(mbus_tx_gap_us);
+      DEBUG_SERIAL.print(F(" us; master gets "));
+      /* The stop bit is one bit time of mark and always precedes the gap. */
+      DEBUG_SERIAL.print(mbus_tx_gap_us + 1000000.0 / MBUS_BAUD_RATE_DEFAULT, 0);
+      DEBUG_SERIAL.print(F(" us of mark between characters ("));
+      DEBUG_SERIAL.print(mbus_tx_gap_us ? F("padded") : F("back-to-back, like a real meter"));
       DEBUG_SERIAL.println(F(")"));
       continue;
     }
     if (c == 'p' || c == 'r') {
-      mbus_fill_byte = (c == 'p') ? 0x55 : 0x00;
-      DEBUG_SERIAL.print(F("fill -> "));
-      if (mbus_fill_byte) DEBUG_SERIAL.println(F("0x55 (no long space runs)"));
-      else DEBUG_SERIAL.println(F("real values (zero-heavy)"));
+      mbus_fill_byte = (c == 'p') ? 0x55 : -1;
+      report_fill();
       continue;
     }
     if (c < '1' || c > '0' + SIM_RECORDS_ALL) continue;

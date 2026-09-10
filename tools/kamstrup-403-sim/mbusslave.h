@@ -114,39 +114,82 @@
  * API
  * ------------------------------------------------------------------------ */
 
-/* Bench aid. When non-zero, every "don't care" byte of the telegram - the
- * status and signature bytes of the fixed header, and all data-record values -
- * is replaced by this fill byte. Structure, record count and frame length are
- * untouched, so only the telegram's *bit pattern* changes.
+/* Bench aid. When >= 0, every "don't care" byte of the telegram - the status
+ * and signature bytes of the fixed header, and all data-record values - is
+ * replaced by this fill byte. Structure, record count and frame length are
+ * untouched, so only the telegram's *bit pattern* changes. -1 = real values.
  *
- * The point: 0x00 at 8E1 is a start bit, eight zero data bits and a zero parity
- * bit - ten consecutive low (space) bit-times, broken only by a single 417 us
- * stop bit at 2400 baud. On M-Bus a space is the slave sinking 11-20 mA, so a
- * run of 0x00 bytes is a sustained high-current burst. 0x55 never puts more
- * than two low bit-times together. Comparing the two at the same frame length
- * separates "the bus cannot hold a long space" from "the frame is too long".
+ * Written to test whether a master was failing on long runs of space bits. An
+ * earlier note here concluded it was not, on the strength of 0x55 fill
+ * corrupting at the same byte index as real zero-heavy values. That was wrong:
+ * the telegram was also truncating at the time for a second reason, and the
+ * truncation masked the pattern effect. Measured again against the ESP32-C6
+ * master, with the frame short enough to arrive whole, two variables separate
+ * cleanly:
  *
- * 0 = real values. Set from the serial console: 'p' = 0x55, 'r' = real. */
-extern uint8_t mbus_fill_byte;
+ *   POSITION. Every character below byte index ~31 - about 140 ms into a
+ *   continuous transmission at 2400 baud - survives whatever it contains. The
+ *   index reproduced to the byte across 33- and 45-byte telegrams.
+ *
+ *   SPACE CONTENT. At that index a character carrying 8 space bit-times out of
+ *   11 corrupts, and one carrying 6 does not. For 8E1 the count is
+ *   10 - popcount - (popcount & 1), so the rule is popcount <= 2. Observed on
+ *   the checksum byte as the access number walked it: 04 -> CC, 05 -> C5,
+ *   06 -> C6 (popcount 1, 2, 2) and 07 -> 07 clean (popcount 3). Every flip is
+ *   0 -> 1 and sits at the trailing end of the character - the space current
+ *   sagging back to mark, not a framing slip.
+ *
+ * Longest run is NOT the discriminator: 0x04 and 0x07 share a 5-bit run and
+ * only 0x04 fails. Total space time is charge drawn, which is what a reservoir
+ * cares about. See mbus_tx_gap_us for the recovery side of the same effect.
+ *
+ * So bit pattern IS a variable, alongside elapsed transmit time. To bisect the
+ * cliff, fill with a low-popcount byte: every payload character is then
+ * vulnerable rather than just the DIF/VIF bytes, and the first corrupt index
+ * in the master's hexdump reads the cliff position off directly.
+ *
+ *   0x55   6 space bits of 11, longest run  2  - healthy, the default probe
+ *   0x11   8 of 11, longest run  4             - vulnerable, short runs
+ *   0x03   8 of 11, longest run  7             - vulnerable, one long run
+ *   0x00  10 of 11, longest run 10             - worst case
+ *
+ * 0x11 against 0x03 is the pair worth running: identical charge, very
+ * different run structure. Same failure index means charge alone decides it;
+ * 0x03 failing earlier means run length matters too.
+ *
+ * Still useful for reading dumps: a phase-slipped 0x55 stream can only decode
+ * as 55/95/a5/a9/aa, so anything else in a 0x55 frame is real bit distortion.
+ *
+ * Set from the serial console: 'f' then two hex digits, 'p' for 0x55, 'r' for
+ * real values. */
+extern int16_t mbus_fill_byte;
 
-/* Idle mark time inserted after every transmitted byte, in milliseconds.
+/* Idle mark time inserted after every transmitted byte, in MICROSECONDS.
  *
  * 0 = characters back-to-back, which is what a real MULTICAL 403 does and what
  * EN 13757-2 expects (the gap between characters of one telegram is capped at
  * around 11 bit times, ~4.6 ms at 2400 baud).
  *
- * HWHardsoft/Arduino-MBUS-Meter - the sketch this one is modelled on - instead
- * delays 10 ms after every byte at 2400 baud (transmit_delay_time()). That is
- * outside the inter-character limit, and it makes the frame take 919 ms rather
- * than 289 ms, but it also drops the proportion of time the slave spends
- * sinking space current from 94% to 38% and gives the bus 10.4 ms of idle mark
- * to recover in between. A master whose receive path cannot hold a sustained
- * space therefore passes with that sketch and fails with this one.
+ * This is the knob that matters on a marginal bus. Measured on the Rev G
+ * board: at 0 the telegram corrupts from byte ~17 onward, about 80 ms into the
+ * transmission, whatever the payload. At 2000 us it decodes cleanly all the
+ * way through - and the frame then takes 415 ms rather than 289 ms, so it is
+ * not elapsed time that matters but the proportion of it spent sinking space
+ * current. Roughly 70% transmit duty is sustainable; 100% is not.
  *
- * Keep this at 0 for honest testing. Raise it only to reproduce the reference
- * sketch's behaviour, or to measure how much recovery time a marginal master
- * needs - the smallest gap that decodes cleanly is that number. */
-extern uint8_t mbus_tx_gap_ms;
+ * That asymmetry - ~80 ms to fail, ~2 ms of idle per character to stay healthy
+ * - is what a bus-powered slave running at the edge of its power budget looks
+ * like: a reservoir that drains slowly under continuous modulation and refills
+ * quickly once the line goes back to mark.
+ *
+ * HWHardsoft/Arduino-MBUS-Meter - the sketch this one is modelled on - delays
+ * 10 ms after every byte at 2400 baud (transmit_delay_time()), which is why it
+ * appeared to work on hardware that a faithful simulator breaks.
+ *
+ * Keep this at 0 for honest testing. Raise it to reproduce the reference
+ * sketch, or to measure how much idle a marginal setup needs - the smallest
+ * gap that decodes cleanly, plus the 417 us stop bit, is that number. */
+extern uint16_t mbus_tx_gap_us;
 
 /* Encode KAM_SERIAL as the four BCD identification bytes, LSB first. */
 void mbus_id_bytes(uint8_t out[4]);
