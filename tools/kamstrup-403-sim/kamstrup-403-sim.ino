@@ -243,22 +243,28 @@ static bool sim_continuous = false;
  * which is the 11-20 mA EN 13757-2 asks a slave to draw. If the HAT inverts,
  * the labels swap and nothing else changes - the lower reading is the space
  * state either way, and the difference is what matters. */
-static void mbus_set_hold(hold_state_t h) {
-  if (h == HOLD_OFF) {
-    if (mbus_hold != HOLD_OFF) {
-      mbus_serial_begin();
-      DEBUG_SERIAL.println(F("hold -> off, line back under UART control"));
-    }
+/* Takes no argument on purpose. The Arduino builder generates prototypes for
+ * every function in a .ino and injects them ABOVE the file's own typedefs, so a
+ * signature naming hold_state_t fails to compile there while building fine with
+ * a plain C++ compiler. Cycling internally keeps the type out of the signature.
+ * Same applies to any future helper here: pass built-in types only. */
+static void mbus_hold_cycle(void) {
+  hold_state_t next = (mbus_hold == HOLD_OFF)   ? HOLD_SPACE
+                    : (mbus_hold == HOLD_SPACE) ? HOLD_MARK
+                                                : HOLD_OFF;
+  if (next == HOLD_OFF) {
+    mbus_serial_begin();
     mbus_hold = HOLD_OFF;
+    DEBUG_SERIAL.println(F("hold -> off, line back under UART control"));
     return;
   }
   if (mbus_hold == HOLD_OFF) {
     MBUS_SERIAL.end();
     pinMode(MBUS_TX_PIN, OUTPUT);
   }
-  mbus_hold = h;
-  digitalWrite(MBUS_TX_PIN, (h == HOLD_SPACE) ? LOW : HIGH);
-  if (h == HOLD_SPACE) {
+  mbus_hold = next;
+  digitalWrite(MBUS_TX_PIN, (next == HOLD_SPACE) ? LOW : HIGH);
+  if (next == HOLD_SPACE) {
     DEBUG_SERIAL.println(F("hold -> SPACE (TX low). Measure M+/M- now: this is "
                            "the slave sinking"));
     DEBUG_SERIAL.println(F("        its transmit current continuously. Press "
@@ -352,9 +358,7 @@ static void poll_console(void) {
       continue;
     }
     if (c == 's') {
-      mbus_set_hold(mbus_hold == HOLD_OFF   ? HOLD_SPACE
-                  : mbus_hold == HOLD_SPACE ? HOLD_MARK
-                                            : HOLD_OFF);
+      mbus_hold_cycle();
       continue;
     }
     if (c == 't') {
