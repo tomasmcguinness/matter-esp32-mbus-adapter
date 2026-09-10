@@ -281,8 +281,17 @@ static const vif_test_def_t kVifTest[] = {
     { 0x08,    8,   0, "Energy",               "J"     },
     { 0x10,    8,  -6, "Volume",               "m^3"   },
     { 0x18,    8,  -3, "Mass",                 "kg"    },
-    { 0x20,    4,   0, "On time",              ""      },
-    { 0x24,    4,   0, "Operating time",       ""      },
+    // 0x20-0x27 and 0x70-0x77 encode s/min/h/days in the low two bits -- a
+    // UNIT, not a decimal exponent. Using the run-with-scalar form here printed
+    // 31913 hours as "3191300", so each unit gets its own row.
+    { 0x20,    1,   0, "On time",              "s"     },
+    { 0x21,    1,   0, "On time",              "min"   },
+    { 0x22,    1,   0, "On time",              "h"     },
+    { 0x23,    1,   0, "On time",              "days"  },
+    { 0x24,    1,   0, "Operating time",       "s"     },
+    { 0x25,    1,   0, "Operating time",       "min"   },
+    { 0x26,    1,   0, "Operating time",       "h"     },
+    { 0x27,    1,   0, "Operating time",       "days"  },
     { 0x28,    8,  -3, "Power",                "W"     },
     { 0x30,    8,   0, "Power",                "J/h"   },
     { 0x38,    8,  -6, "Volume flow",          "m^3/h" },
@@ -297,8 +306,14 @@ static const vif_test_def_t kVifTest[] = {
     { 0x6C,    1,   0, "Date",                 ""      },
     { 0x6D,    1,   0, "Date/time",            ""      },
     { 0x6E,    1,   0, "Units for H.C.A.",     ""      },
-    { 0x70,    4,   0, "Averaging duration",   ""      },
-    { 0x74,    4,   0, "Actuality duration",   ""      },
+    { 0x70,    1,   0, "Averaging duration",   "s"     },
+    { 0x71,    1,   0, "Averaging duration",   "min"   },
+    { 0x72,    1,   0, "Averaging duration",   "h"     },
+    { 0x73,    1,   0, "Averaging duration",   "days"  },
+    { 0x74,    1,   0, "Actuality duration",   "s"     },
+    { 0x75,    1,   0, "Actuality duration",   "min"   },
+    { 0x76,    1,   0, "Actuality duration",   "h"     },
+    { 0x77,    1,   0, "Actuality duration",   "days"  },
     { 0x78,    1,   0, "Fabrication number",   ""      },
     { 0x79,    1,   0, "Enhanced identification", ""   },
     { 0x7A,    1,   0, "Bus address",          ""      },
@@ -357,13 +372,17 @@ static walk_stats_t walk_records(const uint8_t *user, size_t len, size_t start, 
         }
 
         // VIF, plus the VIFE that carries the quantity when the VIF is an
-        // extension escape. Test for the escape byte *exactly*: 0xFD/0xFB always
-        // have bit 7 set (that is what makes them escapes), so masking with 0x7F
-        // first -- as mbus_parse() does -- collapses every extension record to
-        // 0x7D/0x7B and loses the quantity.
+        // extension escape. Test for the escape byte *exactly*: 0xFD/0xFB/0xFF
+        // always have bit 7 set (that is what makes them escapes), so masking
+        // with 0x7F first -- as mbus_parse() does -- collapses every extension
+        // record to 0x7D/0x7B/0x7F and loses the quantity.
+        //
+        // 0xFF must be here even though EN 13757-3 gives it no standard
+        // meaning: without it every manufacturer-specific record keys as 0x7F,
+        // they all collide, and the 0xFF rows in kVifTest are unreachable.
         uint8_t vif = user[pos++];
         uint16_t key;
-        if (vif == 0xFD || vif == 0xFB) {
+        if (vif == 0xFD || vif == 0xFB || vif == 0xFF) {
             if (pos >= len) {
                 st.overrun = true;
                 break;
