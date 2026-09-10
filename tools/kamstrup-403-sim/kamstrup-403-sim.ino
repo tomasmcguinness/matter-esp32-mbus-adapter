@@ -184,6 +184,12 @@ static uint8_t encode_records(uint8_t *r) {
  *   fHH   fill values with the byte 0xHH (varies BIT PATTERN, same length)
  *   p     shorthand for f55
  *   r     back to real meter values
+ *   s     park the line: off -> SPACE -> MARK -> off. Hands GP0 to plain GPIO
+ *         so the bus sits under a steady load and a DMM can read it. The
+ *         difference between the two readings is the slave's modulation
+ *         current - see mbus_set_hold().
+ *   t     transmit telegrams back-to-back until pressed again, for reading the
+ *         bus under realistic traffic rather than a held level.
  *   g     step the inter-byte gap up: 0 -> 250 -> 500 -> 1000 -> 2000 -> 5000
  *         -> 10000 us -> 0. Varies how long the bus is left idling at mark
  *         between characters. 0 is what a real meter does; the stop bit alone
@@ -191,6 +197,80 @@ static uint8_t encode_records(uint8_t *r) {
  *         HWHardsoft reference sketch does.
  * Length and pattern are independent, which is the whole point - see
  * mbus_fill_byte in mbusslave.h. */
+/* --------------------------------------------------------------------------
+ * Runtime state
+ * ------------------------------------------------------------------------ */
+static uint8_t mbus_address = MBUS_ADDRESS_DEFAULT;
+static uint32_t mbus_baud_rate = MBUS_BAUD_RATE_DEFAULT;
+static bool device_selected = false;
+
+/* Bring the M-Bus UART up. Also the restore path out of a parked line, which
+ * is why it is a function rather than inline in setup(). */
+static void mbus_serial_begin(void) {
+#if !MBUS_SERIAL_PINS_FIXED
+  MBUS_SERIAL.setTX(MBUS_TX_PIN);
+  MBUS_SERIAL.setRX(MBUS_RX_PIN);
+#endif
+#if MBUS_SERIAL_HAS_FIFO_SIZE
+  /* The whole echo arrives while write() is still blocking, so the RX buffer
+   * has to hold a full telegram or the drain in mbus_tx_done() reports an
+   * overflow as bus corruption. Must precede begin(). */
+  MBUS_SERIAL.setFIFOSize(MBUS_FRAME_MAX + 16);
+#endif
+  MBUS_SERIAL.begin(mbus_baud_rate, MBUS_SERIAL_CONFIG);
+}
+
+/* --------------------------------------------------------------------------
+ * Bench: parking the line, and transmitting without pause
+ *
+ * Both exist to put the bus under a load steady enough for a multimeter. One
+ * telegram is ~289 ms at 2400 baud with 8 records, which no DMM can follow.
+ * ------------------------------------------------------------------------ */
+typedef enum { HOLD_OFF = 0, HOLD_SPACE, HOLD_MARK } hold_state_t;
+static hold_state_t mbus_hold = HOLD_OFF;
+static bool sim_continuous = false;
+
+/* Park GP0 at a fixed level, taking it off the UART to do so.
+ *
+ * Mark is the idle level and costs the slave almost nothing; space is the slave
+ * sinking its transmit current, and holding it is the worst case any telegram
+ * can present. Reading M+/M- in both states gives the modulation current
+ * without having to catch anything in flight: with the master's source
+ * impedance R (open-circuit volts minus loaded volts, over the load current),
+ *
+ *     I_modulation = (V_mark - V_space) / R
+ *
+ * which is the 11-20 mA EN 13757-2 asks a slave to draw. If the HAT inverts,
+ * the labels swap and nothing else changes - the lower reading is the space
+ * state either way, and the difference is what matters. */
+static void mbus_set_hold(hold_state_t h) {
+  if (h == HOLD_OFF) {
+    if (mbus_hold != HOLD_OFF) {
+      mbus_serial_begin();
+      DEBUG_SERIAL.println(F("hold -> off, line back under UART control"));
+    }
+    mbus_hold = HOLD_OFF;
+    return;
+  }
+  if (mbus_hold == HOLD_OFF) {
+    MBUS_SERIAL.end();
+    pinMode(MBUS_TX_PIN, OUTPUT);
+  }
+  mbus_hold = h;
+  digitalWrite(MBUS_TX_PIN, (h == HOLD_SPACE) ? LOW : HIGH);
+  if (h == HOLD_SPACE) {
+    DEBUG_SERIAL.println(F("hold -> SPACE (TX low). Measure M+/M- now: this is "
+                           "the slave sinking"));
+    DEBUG_SERIAL.println(F("        its transmit current continuously. Press "
+                           "'s' again for MARK."));
+  } else {
+    DEBUG_SERIAL.println(F("hold -> MARK (TX high). Measure M+/M- again. "
+                           "(V_mark - V_space) / R"));
+    DEBUG_SERIAL.println(F("        is the modulation current; EN 13757-2 asks "
+                           "11-20 mA. 's' to release."));
+  }
+}
+
 static int hex_nibble(int c) {
   if (c >= '0' && c <= '9') return c - '0';
   if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -271,6 +351,24 @@ static void poll_console(void) {
       fill_acc = 0;
       continue;
     }
+    if (c == 's') {
+      mbus_set_hold(mbus_hold == HOLD_OFF   ? HOLD_SPACE
+                  : mbus_hold == HOLD_SPACE ? HOLD_MARK
+                                            : HOLD_OFF);
+      continue;
+    }
+    if (c == 't') {
+      sim_continuous = !sim_continuous;
+      if (sim_continuous) {
+        DEBUG_SERIAL.println(F("continuous TX on - telegrams back-to-back, "
+                               "per-telegram logging off."));
+        DEBUG_SERIAL.println(F("        Measure M+/M- for the bus under real "
+                               "traffic. 't' to stop."));
+      } else {
+        DEBUG_SERIAL.println(F("continuous TX off"));
+      }
+      continue;
+    }
     if (c == 'g') {
       static const uint16_t steps[] = {0, 250, 500, 1000, 2000, 5000, 10000};
       uint8_t n = sizeof(steps) / sizeof(steps[0]);
@@ -306,13 +404,6 @@ static void poll_console(void) {
     DEBUG_SERIAL.println(F(" ms on the wire)"));
   }
 }
-
-/* --------------------------------------------------------------------------
- * Runtime state
- * ------------------------------------------------------------------------ */
-static uint8_t mbus_address = MBUS_ADDRESS_DEFAULT;
-static uint32_t mbus_baud_rate = MBUS_BAUD_RATE_DEFAULT;
-static bool device_selected = false;
 
 static void print_bytes(const uint8_t *bytes, size_t len) {
   for (size_t i = 0; i < len; i++) {
@@ -392,8 +483,10 @@ static void print_values(void) {
   DEBUG_SERIAL.println(F(" K"));
 }
 
-/* Encode the current readings and answer with a RSP_UD long frame. */
-static void send_data_response(uint8_t address) {
+/* Encode the current readings and answer with a RSP_UD long frame. Quiet when
+ * `verbose` is false, which is how continuous transmit avoids drowning the
+ * console in ~200 telegrams a minute. */
+static void send_data_response(uint8_t address, bool verbose) {
   uint8_t records[RECORDS_MAX];
   uint8_t frame[MBUS_FRAME_MAX];
 
@@ -407,7 +500,7 @@ static void send_data_response(uint8_t address) {
   mbus_transmit(frame, (size_t)len);
 
   digitalWrite(LED_BUILTIN, HIGH);
-  if (DEBUG) {
+  if (DEBUG && verbose) {
     DEBUG_SERIAL.print(F("tx: "));
     print_bytes(frame, (size_t)len);
     mbus_report_echo(frame, (size_t)len);
@@ -422,17 +515,7 @@ void setup() {
 
   DEBUG_SERIAL.begin(115200);
 
-#if !MBUS_SERIAL_PINS_FIXED
-  MBUS_SERIAL.setTX(MBUS_TX_PIN);
-  MBUS_SERIAL.setRX(MBUS_RX_PIN);
-#endif
-#if MBUS_SERIAL_HAS_FIFO_SIZE
-  /* The whole echo arrives while write() is still blocking, so the RX buffer
-   * has to hold a full telegram or the drain in mbus_tx_done() reports an
-   * overflow as bus corruption. Must precede begin(). */
-  MBUS_SERIAL.setFIFOSize(MBUS_FRAME_MAX + 16);
-#endif
-  MBUS_SERIAL.begin(mbus_baud_rate, MBUS_SERIAL_CONFIG);
+  mbus_serial_begin();
   delay(1000); /* let the UART settle, or the first frame is garbage */
 
   sim_init();
@@ -476,6 +559,17 @@ void loop() {
   sim_tick();
   poll_console();
 
+  /* Line parked for a meter reading: the UART is not even running, so there is
+   * nothing to poll and nothing to answer. */
+  if (mbus_hold != HOLD_OFF) return;
+
+  /* Continuous transmit: ignore the bus and keep the line busy, so the load a
+   * DMM sees is the one a real telegram presents rather than a held level. */
+  if (sim_continuous) {
+    send_data_response(mbus_address, false);
+    return;
+  }
+
   uint8_t rx[MBUS_DATA_SIZE];
   int n = mbus_get_response(rx, sizeof(rx));
 
@@ -516,7 +610,7 @@ void loop() {
        * address - otherwise every slave on the bus would talk at once. */
       if (broadcast && !device_selected) return;
       if (DEBUG) DEBUG_SERIAL.println(F("  REQ_UD2 - class 2 data request"));
-      send_data_response(mbus_address);
+      send_data_response(mbus_address, true);
       return;
     }
 
