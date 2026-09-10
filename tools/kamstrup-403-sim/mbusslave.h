@@ -51,6 +51,17 @@
 #endif
 #endif
 
+/* Only arduino-pico lets the RX ring buffer be resized, and mbus_echo needs it:
+ * the echo of a 63-byte telegram arrives while write() is still blocking, so
+ * the default 32-byte buffer would overflow and fake a corrupted echo. */
+#ifndef MBUS_SERIAL_HAS_FIFO_SIZE
+#if defined(ARDUINO_ARCH_MBED)
+#define MBUS_SERIAL_HAS_FIFO_SIZE 0
+#else
+#define MBUS_SERIAL_HAS_FIFO_SIZE 1
+#endif
+#endif
+
 /* Link settings. The source of truth is the master:
  *   firmware/main/mbus.cpp:61-73 - 2400 baud, 8 data bits, EVEN parity, 1 stop
  *   firmware/main/mbus.h:9       - primary address 0x05
@@ -64,7 +75,13 @@
 #define MBUS_FRAME_MAX      266
 #define MBUS_GAP_MS          50  /* inter-byte gap that abandons a frame.
                                   * One byte at 2400 8E1 takes ~4.6 ms. */
-#define MBUS_ECHO_DRAIN_MS    5  /* let the HAT comparator settle after TX */
+#define MBUS_ECHO_DRAIN_MS   15  /* let the HAT comparator settle after TX.
+                                  * Must outlast the last character's echo,
+                                  * which lands ~4.6 ms after the stop bit
+                                  * leaves the UART, or mbus_echo below is
+                                  * truncated by the drain rather than by the
+                                  * bus. The master leaves 100 ms before its
+                                  * next request, so this is free. */
 
 #define DEBUG 1
 
@@ -226,6 +243,25 @@ extern int16_t mbus_fill_byte;
  * sketch, or to measure how much idle a marginal setup needs - the smallest
  * gap that decodes cleanly, plus the 417 us stop bit, is that number. */
 extern uint16_t mbus_tx_gap_us;
+
+/* The slave's own last transmission, as it came back through the HAT's
+ * comparator. The HAT loops it back - mbus_tx_done() has always had to drain it
+ * so the next mbus_get_response() does not parse our own reply as a master
+ * command - and that loopback is a free measurement point.
+ *
+ * It splits the bus in half without instruments. The path here is
+ *   UART TX -> HAT modulator -> bus -> HAT comparator
+ * where what the master decodes adds
+ *   -> DYBKRADIO comparator -> ESP32 UART.
+ * So a corrupted echo puts the fault at the slave end or on the bus itself,
+ * and a clean echo against a corrupted master copy puts it at the master end.
+ * A zero-length echo just means this HAT does not loop back, and the test is
+ * unavailable rather than passed.
+ *
+ * Compare against what was transmitted with mbus_report_echo() in the sketch.
+ * Empty until the first transmission. */
+extern uint8_t mbus_echo[MBUS_FRAME_MAX];
+extern size_t mbus_echo_len;
 
 /* Encode KAM_SERIAL as the four BCD identification bytes, LSB first. */
 void mbus_id_bytes(uint8_t out[4]);

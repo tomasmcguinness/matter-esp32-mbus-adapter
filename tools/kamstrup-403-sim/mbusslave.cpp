@@ -12,6 +12,9 @@ static uint8_t access_no = 0;
 int16_t mbus_fill_byte = -1;
 uint16_t mbus_tx_gap_us = 0;
 
+uint8_t mbus_echo[MBUS_FRAME_MAX];
+size_t mbus_echo_len = 0;
+
 void mbus_id_bytes(uint8_t out[4]) {
   uint32_t v = KAM_SERIAL;
   for (int i = 0; i < 4; i++) {
@@ -30,12 +33,17 @@ static int read_byte_timeout(uint32_t timeout_ms) {
 }
 
 /* After transmitting: wait for the last stop bit to leave the UART, let the
- * HAT's comparator settle, then bin whatever it echoed back. Without this the
- * next mbus_get_response() parses our own reply as a master command. */
+ * HAT's comparator settle, then take whatever it echoed back. The buffer still
+ * ends up empty, which is what the next mbus_get_response() needs - it just
+ * keeps a copy on the way past. See mbus_echo in mbusslave.h. */
 static void mbus_tx_done(void) {
   MBUS_SERIAL.flush();
   delay(MBUS_ECHO_DRAIN_MS);
-  while (MBUS_SERIAL.available()) MBUS_SERIAL.read();
+  mbus_echo_len = 0;
+  while (MBUS_SERIAL.available()) {
+    int b = MBUS_SERIAL.read();
+    if (mbus_echo_len < sizeof(mbus_echo)) mbus_echo[mbus_echo_len++] = (uint8_t)b;
+  }
 }
 
 int mbus_get_response(uint8_t *pdata, size_t cap) {

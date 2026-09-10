@@ -323,6 +323,57 @@ static void print_bytes(const uint8_t *bytes, size_t len) {
   DEBUG_SERIAL.println();
 }
 
+/* Compare the HAT's loopback against what we asked it to transmit - the slave
+ * half of the bus, measured on its own with no instruments. See mbus_echo in
+ * mbusslave.h for what each outcome localises the fault to. The echo line is
+ * printed in the same hex format the master logs, so it can go straight into
+ * tools/mbus-align/mbus_align.py. */
+static void mbus_report_echo(const uint8_t *sent, size_t len) {
+  if (mbus_echo_len == 0) {
+    DEBUG_SERIAL.println(F("echo: none - this HAT does not loop back, "
+                           "so the slave half cannot be tested this way"));
+    return;
+  }
+
+  size_t common = (mbus_echo_len < len) ? mbus_echo_len : len;
+  size_t differ = 0;
+  int first = -1;
+  for (size_t i = 0; i < common; i++) {
+    if (mbus_echo[i] != sent[i]) {
+      if (first < 0) first = (int)i;
+      differ++;
+    }
+  }
+
+  DEBUG_SERIAL.print(F("echo: "));
+  DEBUG_SERIAL.print(mbus_echo_len);
+  DEBUG_SERIAL.print(F(" of "));
+  DEBUG_SERIAL.print(len);
+  DEBUG_SERIAL.print(F(" bytes"));
+  if (mbus_echo_len == len && differ == 0) {
+    DEBUG_SERIAL.println(F(" - CLEAN, the slave end put the telegram on the "
+                           "bus intact"));
+    return;
+  }
+  DEBUG_SERIAL.print(F(", "));
+  DEBUG_SERIAL.print(differ);
+  DEBUG_SERIAL.print(F(" differ"));
+  if (first >= 0) {
+    DEBUG_SERIAL.print(F(", first at index "));
+    DEBUG_SERIAL.print(first);
+    DEBUG_SERIAL.print(F(" (sent "));
+    if (sent[first] < 0x10) DEBUG_SERIAL.print('0');
+    DEBUG_SERIAL.print(sent[first], HEX);
+    DEBUG_SERIAL.print(F(", echo "));
+    if (mbus_echo[first] < 0x10) DEBUG_SERIAL.print('0');
+    DEBUG_SERIAL.print(mbus_echo[first], HEX);
+    DEBUG_SERIAL.print(')');
+  }
+  DEBUG_SERIAL.println();
+  DEBUG_SERIAL.print(F("echo: "));
+  print_bytes(mbus_echo, mbus_echo_len);
+}
+
 static void print_values(void) {
   DEBUG_SERIAL.print(F("  energy "));
   DEBUG_SERIAL.print(meter.energy_wh / 1000.0, 1);
@@ -359,6 +410,7 @@ static void send_data_response(uint8_t address) {
   if (DEBUG) {
     DEBUG_SERIAL.print(F("tx: "));
     print_bytes(frame, (size_t)len);
+    mbus_report_echo(frame, (size_t)len);
     print_values();
   }
   digitalWrite(LED_BUILTIN, LOW);
@@ -373,6 +425,12 @@ void setup() {
 #if !MBUS_SERIAL_PINS_FIXED
   MBUS_SERIAL.setTX(MBUS_TX_PIN);
   MBUS_SERIAL.setRX(MBUS_RX_PIN);
+#endif
+#if MBUS_SERIAL_HAS_FIFO_SIZE
+  /* The whole echo arrives while write() is still blocking, so the RX buffer
+   * has to hold a full telegram or the drain in mbus_tx_done() reports an
+   * overflow as bus corruption. Must precede begin(). */
+  MBUS_SERIAL.setFIFOSize(MBUS_FRAME_MAX + 16);
 #endif
   MBUS_SERIAL.begin(mbus_baud_rate, MBUS_SERIAL_CONFIG);
   delay(1000); /* let the UART settle, or the first frame is garbage */

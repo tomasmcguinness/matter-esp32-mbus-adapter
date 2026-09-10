@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 
 #include <string.h>
 
@@ -25,6 +26,7 @@
 #define MBUS_ACK         0xE5  // single-byte acknowledge
 
 #define MBUS_RX_BUF_SIZE 512
+#define MBUS_EVENT_QUEUE_LEN 32
 
 // Timeouts. uart_read_bytes() does NOT decrement its ticks_to_wait between
 // ring-buffer chunks (esp_driver_uart/src/uart.c), so one call bounds the gap
@@ -46,6 +48,44 @@
 #define MBUS_LOG_RAW_RX 1
 
 static const char *TAG = "MBus";
+
+// UART event queue. Installed purely for diagnosis: it is the only way to see
+// the hardware's framing and parity verdicts, and on this bus those are the
+// tell for a character that arrived with its bits distorted rather than one
+// that was never sent. The RX data is unaffected either way - esp_driver_uart
+// resets the RX FIFO only on overflow and in RS485 modes, never on a framing or
+// parity error - so nothing here changes what mbus_read_exact() sees.
+static QueueHandle_t s_uart_events = NULL;
+
+typedef struct {
+    int framing;
+    int parity;
+    int overflow;
+    int brk;
+} mbus_uart_errs_t;
+
+// Drain the event queue, tallying into `out` when given. uart_flush_input()
+// does NOT clear this queue, so it has to be drained explicitly before a poll
+// or the previous telegram's errors are still sitting in it.
+static void mbus_collect_uart_errors(mbus_uart_errs_t *out)
+{
+    if (s_uart_events == NULL) {
+        return;
+    }
+    uart_event_t ev;
+    while (xQueueReceive(s_uart_events, &ev, 0) == pdTRUE) {
+        if (out == NULL) {
+            continue;
+        }
+        switch (ev.type) {
+        case UART_FRAME_ERR:  out->framing++;  break;
+        case UART_PARITY_ERR: out->parity++;   break;
+        case UART_FIFO_OVF:   out->overflow++; break;
+        case UART_BREAK:      out->brk++;      break;
+        default:                               break;
+        }
+    }
+}
 
 static uint8_t mbus_checksum(const uint8_t *data, size_t len)
 {
@@ -98,7 +138,8 @@ void mbus_uart_init(void)
 
     uart_param_config(MBUS_UART, &uart_config);
     uart_set_pin(MBUS_UART, MBUS_TXD_PIN, MBUS_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(MBUS_UART, MBUS_RX_BUF_SIZE, 0, 0, NULL, 0);
+    uart_driver_install(MBUS_UART, MBUS_RX_BUF_SIZE, 0,
+                        MBUS_EVENT_QUEUE_LEN, &s_uart_events, 0);
 }
 
 esp_err_t mbus_send_nke(uint8_t primary_addr)
@@ -142,6 +183,7 @@ esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, s
     mbus_send_short_frame(MBUS_C_SND_NKE, primary_addr);
     vTaskDelay(pdMS_TO_TICKS(100));
     uart_flush_input(MBUS_UART);
+    mbus_collect_uart_errors(NULL); // discard the reset exchange's events
 
     // Ask for user data (class 2).
     mbus_send_short_frame(MBUS_C_REQ_UD2, primary_addr);
@@ -196,10 +238,23 @@ esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, s
     int got = mbus_read_exact(&rx[4], rest, MBUS_CHAR_TIMEOUT_MS);
     int frame_len = 4 + rest;
 
+    mbus_uart_errs_t errs = {0, 0, 0, 0};
+    mbus_collect_uart_errors(&errs);
+
 #if MBUS_LOG_RAW_RX
     ESP_LOGI(TAG, "RX frame, %d of %d byte(s):", 4 + got, frame_len);
     ESP_LOG_BUFFER_HEXDUMP(TAG, rx, 4 + got, ESP_LOG_INFO);
 #endif
+
+    // Framing errors mean the hardware saw a stop bit that was not there, which
+    // is what losing character sync looks like from this end. When they show up
+    // alongside a short read, the slave did not necessarily stop transmitting -
+    // the UART may simply have stopped recognising where characters begin. Feed
+    // the dump above to tools/mbus-align/mbus_align.py to tell the two apart.
+    if (errs.framing || errs.parity || errs.overflow || errs.brk) {
+        ESP_LOGW(TAG, "UART: %d framing, %d parity, %d overflow, %d break",
+                 errs.framing, errs.parity, errs.overflow, errs.brk);
+    }
 
     if (got != rest) {
         // The bus went quiet part-way through the telegram. That is a
