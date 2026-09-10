@@ -230,7 +230,16 @@ typedef enum { HOLD_OFF = 0, HOLD_SPACE, HOLD_MARK } hold_state_t;
 static hold_state_t mbus_hold = HOLD_OFF;
 static bool sim_continuous = false;
 
-/* Park GP0 at a fixed level, taking it off the UART to do so.
+/* Park the line, WITHOUT taking GP0 away from the UART.
+ *
+ * The first version of this called MBUS_SERIAL.end() and drove GP0 with
+ * pinMode/digitalWrite. Releasing it did not reliably hand the pad back, so the
+ * sim went silent after any use of 's' - still logging "tx:" for telegrams that
+ * never physically left - until the Pico was power-cycled. Do not reintroduce
+ * that: SPACE is now a continuous stream of 0x00 characters instead, which at
+ * 8E1 is ten space bit-times out of eleven (~91% space, against 100% for a true
+ * hold). A DMM cannot tell the difference that matters, and the UART never
+ * loses ownership of the pin.
  *
  * Mark is the idle level and costs the slave almost nothing; space is the slave
  * sinking its transmit current, and holding it is the worst case any telegram
@@ -249,31 +258,21 @@ static bool sim_continuous = false;
  * a plain C++ compiler. Cycling internally keeps the type out of the signature.
  * Same applies to any future helper here: pass built-in types only. */
 static void mbus_hold_cycle(void) {
-  hold_state_t next = (mbus_hold == HOLD_OFF)   ? HOLD_SPACE
-                    : (mbus_hold == HOLD_SPACE) ? HOLD_MARK
-                                                : HOLD_OFF;
-  if (next == HOLD_OFF) {
-    mbus_serial_begin();
-    mbus_hold = HOLD_OFF;
-    DEBUG_SERIAL.println(F("hold -> off, line back under UART control"));
-    return;
-  }
-  if (mbus_hold == HOLD_OFF) {
-    MBUS_SERIAL.end();
-    pinMode(MBUS_TX_PIN, OUTPUT);
-  }
-  mbus_hold = next;
-  digitalWrite(MBUS_TX_PIN, (next == HOLD_SPACE) ? LOW : HIGH);
-  if (next == HOLD_SPACE) {
-    DEBUG_SERIAL.println(F("hold -> SPACE (TX low). Measure M+/M- now: this is "
-                           "the slave sinking"));
-    DEBUG_SERIAL.println(F("        its transmit current continuously. Press "
+  mbus_hold = (mbus_hold == HOLD_OFF)   ? HOLD_SPACE
+            : (mbus_hold == HOLD_SPACE) ? HOLD_MARK
+                                        : HOLD_OFF;
+  if (mbus_hold == HOLD_SPACE) {
+    DEBUG_SERIAL.println(F("hold -> SPACE (streaming 0x00, ~91% space). Measure "
+                           "M+/M- now:"));
+    DEBUG_SERIAL.println(F("        the slave is sinking its transmit current. "
                            "'s' again for MARK."));
-  } else {
-    DEBUG_SERIAL.println(F("hold -> MARK (TX high). Measure M+/M- again. "
+  } else if (mbus_hold == HOLD_MARK) {
+    DEBUG_SERIAL.println(F("hold -> MARK (line idle). Measure M+/M- again. "
                            "(V_mark - V_space) / R"));
     DEBUG_SERIAL.println(F("        is the modulation current; EN 13757-2 asks "
                            "11-20 mA. 's' to release."));
+  } else {
+    DEBUG_SERIAL.println(F("hold -> off, answering requests again"));
   }
 }
 
@@ -563,9 +562,18 @@ void loop() {
   sim_tick();
   poll_console();
 
-  /* Line parked for a meter reading: the UART is not even running, so there is
-   * nothing to poll and nothing to answer. */
-  if (mbus_hold != HOLD_OFF) return;
+  /* Line parked for a meter reading. MARK needs nothing done - an idle UART
+   * already holds the line at mark. SPACE streams zeros; flush() so the bytes
+   * are actually on the wire before the next console check, and bin the echo so
+   * mbus_get_response() does not later parse it as a master command. */
+  if (mbus_hold == HOLD_SPACE) {
+    static const uint8_t zeros[16] = {0};
+    MBUS_SERIAL.write(zeros, sizeof(zeros));
+    MBUS_SERIAL.flush();
+    while (MBUS_SERIAL.available()) MBUS_SERIAL.read();
+    return;
+  }
+  if (mbus_hold == HOLD_MARK) return;
 
   /* Continuous transmit: ignore the bus and keep the line busy, so the load a
    * DMM sees is the one a real telegram presents rather than a held level. */
