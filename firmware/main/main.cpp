@@ -1,4 +1,5 @@
 #include <esp_err.h>
+#include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <inttypes.h>
 #include <esp_matter.h>
@@ -82,7 +83,7 @@ static uint16_t heat_meter_endpoint_id = 0; // custom high-precision cluster
 #define MBUS_MODE_TEST     2
 
 #ifndef MBUS_MODE
-#define MBUS_MODE MBUS_MODE_TEST
+#define MBUS_MODE MBUS_MODE_NORMAL
 #endif
 
 #define MBUS_NKE_TEST_INTERVAL_MS 2000
@@ -131,6 +132,32 @@ static void update_mbus_gate()
         ESP_LOGI(TAG, "M-Bus polling suspended (window=%d session=%d fabric=%d)",
                  s_window_open, s_session_in_flight, s_commissioned);
         xEventGroupClearBits(s_app_events, APP_EVENT_MBUS_ENABLED);
+    }
+}
+
+// largest is the number that matters, not free: NetworkCommissioning's
+// ScanNetworksResponse needs one contiguous ~1.2 kB malloc (packet buffers come
+// off the CHIP heap on this port), so fragmentation can fail the allocation --
+// and with it the whole commissioning -- while total free still looks healthy.
+static void log_heap(const char *phase)
+{
+    ESP_LOGW(TAG, "heap [%s] free=%u largest=%u min_ever=%u", phase,
+             (unsigned) heap_caps_get_free_size(MALLOC_CAP_8BIT),
+             (unsigned) heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+             (unsigned) heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+}
+
+// The failure we are hunting -- ScanNetworks returning CHIP_ERROR_NO_MEMORY --
+// arrives with no event to hang a log off, so sample instead. The M-Bus gate is
+// already the "not yet on a fabric, or mid-commissioning" signal, and reading it
+// through the event group keeps this task off the Matter thread's state.
+static void heap_watch_task(void *arg)
+{
+    for (;;)
+    {
+        const bool commissioning = (xEventGroupGetBits(s_app_events) & APP_EVENT_MBUS_ENABLED) == 0;
+        log_heap(commissioning ? "commissioning" : "idle");
+        vTaskDelay((commissioning ? 2000 : 60000) / portTICK_PERIOD_MS);
     }
 }
 
@@ -183,6 +210,7 @@ static void app_event_cb(const ChipDeviceEvent *event, intptr_t arg)
     {
     case chip::DeviceLayer::DeviceEventType::kCommissioningWindowOpened:
         ESP_LOGI(TAG, "Commissioning window opened");
+        log_heap("window-opened");
         s_window_open = true;
         update_mbus_gate();
         break;
@@ -197,16 +225,19 @@ static void app_event_cb(const ChipDeviceEvent *event, intptr_t arg)
         break;
     case chip::DeviceLayer::DeviceEventType::kCommissioningSessionStarted:
         ESP_LOGI(TAG, "Commissioning session started");
+        log_heap("session-started");
         s_session_in_flight = true;
         update_mbus_gate();
         break;
     case chip::DeviceLayer::DeviceEventType::kCommissioningSessionStopped:
         ESP_LOGI(TAG, "Commissioning session stopped");
+        log_heap("session-stopped");
         s_session_in_flight = false;
         update_mbus_gate();
         break;
     case chip::DeviceLayer::DeviceEventType::kCommissioningComplete:
         ESP_LOGI(TAG, "Commissioning complete");
+        log_heap("complete");
         s_commissioned = true;
         s_session_in_flight = false;
         update_mbus_gate();
@@ -215,6 +246,7 @@ static void app_event_cb(const ChipDeviceEvent *event, intptr_t arg)
         // Commissioning gave up part-way. The SDK reopens the window for a
         // retry, so the gate normally stays shut on the window flag alone.
         ESP_LOGW(TAG, "Fail-safe timer expired");
+        log_heap("fail-safe-expired");
         s_session_in_flight = false;
         update_mbus_gate();
         break;
@@ -526,5 +558,6 @@ extern "C" void app_main()
         update_mbus_gate();
     });
 
+    xTaskCreate(heap_watch_task, "heap_watch", 2560, NULL, 1, NULL);
     xTaskCreate(mbus_poll_task, "mbus_poll", 4096, NULL, 5, NULL);
 }

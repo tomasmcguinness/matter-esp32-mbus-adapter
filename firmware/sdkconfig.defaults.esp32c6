@@ -30,5 +30,6 @@ CONFIG_LWIP_MULTICAST_PING=y
 CONFIG_USE_MINIMAL_MDNS=n
 CONFIG_ENABLE_EXTENDED_DISCOVERY=y
 
-# Enable chip shell for debugging
-CONFIG_ENABLE_CHIP_SHELL=y
+# Chip shell off: it costs a task stack plus several kB of RAM that the device
+# cannot spare at the commissioning peak. Re-enable locally when debugging.
+CONFIG_ENABLE_CHIP_SHELL=n
