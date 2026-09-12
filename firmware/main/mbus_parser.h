@@ -9,18 +9,17 @@
 extern "C" {
 #endif
 
-// Decoded subset of an EN 13757-3 heat/flow meter telegram.
+// Decoded subset of an EN 13757-3 heat/flow meter telegram: the quantities the
+// Heat Meter cluster publishes, and nothing else. A telegram carries plenty
+// more -- energy, volume, hour counters, target-date copies -- which the parser
+// walks past. See kAccept[] in mbus_parser.cpp for the accepted VIF codes.
 typedef struct {
     bool   has_flow;         // volume flow
-    bool   has_energy;       // heat energy
-    bool   has_volume;
     bool   has_flow_temp;
     bool   has_return_temp;
     bool   has_power;
 
     float  flow_m3h;         // m^3/h
-    double energy_wh;        // Wh
-    double volume_m3;        // m^3
     float  flow_temp_c;      // deg C
     float  return_temp_c;    // deg C
     float  power_w;          // W

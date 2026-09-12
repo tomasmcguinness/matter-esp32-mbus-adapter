@@ -61,37 +61,77 @@ static double pow10i(int exp)
     return pow(10.0, (double)exp);
 }
 
-// Map a primary-table VIF + decoded value into the output struct.
+// Registers the Heat Meter cluster publishes, keyed on the primary VIF.
+//
+// Every code here comes from the Kamstrup "Wired M-Bus for MULTICAL 403, 603
+// and 803" technical description (55121890_F1), sections 4.1 and 4.4. A VIF
+// that is not listed is ignored, which is what already happens to the hour
+// counter (0x22), temperature difference (0x61), date/time (0x6D), serial
+// number (0x78) and the manufacturer-specific 0xFF registers.
+//
+// Laid out as runs, like kVifTest[] further down: `base` is the code for the
+// lowest exponent, the run is `size` codes long, and
+// exponent(vif) = scalar + (vif - base).
+//
+// The DIF is deliberately not part of the key. Section 4.4 lists the same
+// register under more than one DIF -- "02 61" and "04 61" are both the t1-t2
+// difference -- because the low nibble is the data coding, which varies from
+// meter to meter. The DIF bits that do matter are the upper nibble, and they
+// mean the same thing for every row here, so mbus_parse() tests them once.
+typedef enum {
+    FIELD_POWER,
+    FIELD_FLOW,
+    FIELD_FLOW_TEMP,
+    FIELD_RETURN_TEMP,
+} field_id_t;
+
+typedef struct {
+    uint8_t    base;
+    uint8_t    size;
+    int8_t     scalar;
+    field_id_t field;
+} vif_accept_t;
+
+static const vif_accept_t kAccept[] = {
+    { 0x2D, 3,  2, FIELD_POWER       }, // Power actual:    0.1 kW .. 10 kW
+    { 0x3B, 4, -3, FIELD_FLOW        }, // Flow V1 actual:  l/h .. m3/h
+    { 0x58, 4, -3, FIELD_FLOW_TEMP   }, // Inlet temp T1
+    { 0x5C, 4, -3, FIELD_RETURN_TEMP }, // Outlet temp T2
+};
+
+// Store a record if its VIF names one of the registers we publish. The caller
+// must already have established that the record is the meter's current
+// instantaneous reading -- see the DIF gate in mbus_parse().
 static void classify(uint8_t vif, double value, heat_meter_data_t *out)
 {
-    if (vif <= 0x07) {                       // Energy, Wh; 10^(n-3)
-        out->energy_wh = value * pow10i((vif & 0x07) - 3);
-        out->has_energy = true;
-    } else if (vif <= 0x0F) {                // Energy, J; 10^(n) J -> Wh
-        double j = value * pow10i(vif & 0x07);
-        out->energy_wh = j / 3600.0;
-        out->has_energy = true;
-    } else if (vif <= 0x17) {                // Volume, m^3; 10^(n-6)
-        out->volume_m3 = value * pow10i((vif & 0x07) - 6);
-        out->has_volume = true;
-    } else if (vif >= 0x28 && vif <= 0x2F) { // Power, W; 10^(n-3)
-        out->power_w = (float)(value * pow10i((vif & 0x07) - 3));
-        out->has_power = true;
-    } else if (vif >= 0x30 && vif <= 0x37) { // Power, J/h; 10^(n) J/h -> W
-        double jph = value * pow10i(vif & 0x07);
-        out->power_w = (float)(jph / 3600.0);
-        out->has_power = true;
-    } else if (vif >= 0x38 && vif <= 0x3F) { // Volume flow, m^3/h; 10^(n-6)
-        out->flow_m3h = (float)(value * pow10i((vif & 0x07) - 6));
-        out->has_flow = true;
-    } else if (vif >= 0x58 && vif <= 0x5B) { // Flow temperature, degC; 10^(n-3)
-        out->flow_temp_c = (float)(value * pow10i((vif & 0x03) - 3));
-        out->has_flow_temp = true;
-    } else if (vif >= 0x5C && vif <= 0x5F) { // Return temperature, degC; 10^(n-3)
-        out->return_temp_c = (float)(value * pow10i((vif & 0x03) - 3));
-        out->has_return_temp = true;
+    for (size_t i = 0; i < sizeof(kAccept) / sizeof(kAccept[0]); i++) {
+        const vif_accept_t *a = &kAccept[i];
+        if (vif < a->base || vif >= (uint8_t)(a->base + a->size)) {
+            continue;
+        }
+
+        float scaled = (float)(value * pow10i(a->scalar + (int)(vif - a->base)));
+
+        switch (a->field) {
+        case FIELD_POWER:
+            out->power_w = scaled;
+            out->has_power = true;
+            break;
+        case FIELD_FLOW:
+            out->flow_m3h = scaled;
+            out->has_flow = true;
+            break;
+        case FIELD_FLOW_TEMP:
+            out->flow_temp_c = scaled;
+            out->has_flow_temp = true;
+            break;
+        case FIELD_RETURN_TEMP:
+            out->return_temp_c = scaled;
+            out->has_return_temp = true;
+            break;
+        }
+        return;
     }
-    // Other quantities (mass, temp difference, dates, etc.) are ignored.
 }
 
 esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
@@ -136,6 +176,14 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
 
         uint8_t coding = dif & 0x0F;
 
+        // Upper nibble zero means: no DIFE, storage number 0, and function
+        // field 00 (instantaneous). Anything else is a reading we must not
+        // store -- a MULTICAL 403 repeats each quantity as a maximum (DIF 14),
+        // a minimum (24), a value during error (34), a target-date copy (44,
+        // 54) and a pulse-input subunit (84, C4), all under the SAME VIF. The
+        // DIFE loop below overwrites `dif`, so this has to be read first.
+        bool is_current = (dif & 0xF0) == 0x00;
+
         // Skip DIFEs (bit 7 = extension).
         while ((dif & 0x80) && pos < len) {
             dif = user[pos++];
@@ -147,6 +195,11 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
         }
         uint8_t vif = user[pos++];
         uint8_t vif_primary = vif & 0x7F;
+        // A VIFE means the quantity is not the one the primary VIF names: the
+        // spec's 04 BBFF0D is Flow V2 and 04 ADFF2D is Power 2, and masking
+        // those to 0x7F would read them as the primary circuit's flow and
+        // power. Only bare primary-table VIFs are accepted.
+        bool vif_extended = (vif & 0x80) != 0;
         while ((vif & 0x80) && pos < len) {
             vif = user[pos++]; // consume VIFEs
         }
@@ -189,7 +242,7 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
             decoded = true;
         }
 
-        if (decoded) {
+        if (decoded && is_current && !vif_extended) {
             classify(vif_primary, value, out);
         }
     }

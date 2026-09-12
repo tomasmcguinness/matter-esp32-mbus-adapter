@@ -403,10 +403,8 @@ static void mbus_poll_task(void *arg)
             if (mbus_parse(user, user_len, &data) == ESP_OK)
             {
                 ESP_LOGI(TAG,
-                         "flow=%.3f m3/h energy=%.0f Wh volume=%.4f m3 Tflow=%.2f Tret=%.2f power=%.1f W",
+                         "flow=%.3f m3/h Tflow=%.2f Tret=%.2f power=%.1f W",
                          data.has_flow ? data.flow_m3h : NAN,
-                         data.has_energy ? data.energy_wh : NAN,
-                         data.has_volume ? data.volume_m3 : NAN,
                          data.has_flow_temp ? data.flow_temp_c : NAN,
                          data.has_return_temp ? data.return_temp_c : NAN,
                          data.has_power ? data.power_w : NAN);
