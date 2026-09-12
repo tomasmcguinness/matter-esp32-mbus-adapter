@@ -1,6 +1,7 @@
 #include <esp_err.h>
 #include <esp_heap_caps.h>
 #include <esp_log.h>
+#include <esp_system.h>
 #include <inttypes.h>
 #include <esp_matter.h>
 #include <nvs_flash.h>
@@ -12,6 +13,8 @@
 
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
 #include <platform/ESP32/OpenthreadLauncher.h>
+#include <platform/ConnectivityManager.h>
+#include <platform/ThreadStackManager.h>
 #include <esp_openthread_types.h>
 
 // The default OpenThread platform config macros are provided by the examples,
@@ -38,6 +41,11 @@
 
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
 #include "esp_ieee802154.h"
+#include "esp_openthread.h"
+#include "esp_openthread_lock.h"
+#include <openthread/ip6.h>
+#include <openthread/srp_client.h>
+#include <openthread/thread.h>
 #endif
 
 #include "heat_meter_cluster.h"
@@ -46,6 +54,8 @@
 #include "reset_button.h"
 
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 static const char *TAG = "Main";
 
@@ -62,17 +72,22 @@ static uint16_t heat_meter_endpoint_id = 0; // custom high-precision cluster
 
 // Matter's Flow Measurement cluster (0x0404) carries MeasuredValue as a uint16
 // where MeasuredValue = 10 x flow in m^3/h -- i.e. one count is 0.1 m^3/h, or
-// 100 l/h. The meter reports l/h, so this view of the reading loses three
-// significant figures; HM_ATTR_FLOW_ID on the custom cluster keeps the accurate
-// one. The standard cluster exists so an off-the-shelf controller can read the
-// flow at all without knowing anything about the custom cluster.
-#define FLOW_MEASUREMENT_PER_M3H 10.0f
+// 100 l/h of the meter's own units. The meter reports l/h, so this view of the
+// reading loses three significant figures; HM_ATTR_FLOW_ID on the custom
+// cluster keeps the accurate one. The standard cluster exists so an
+// off-the-shelf controller can read the flow at all without knowing anything
+// about the custom cluster.
+//
+// Everything below is in l/h rather than m^3/h so the flow path holds no
+// floating point anywhere between the telegram and either attribute.
+#define FLOW_MEASUREMENT_LPH_PER_COUNT 100
 
-// Range advertised by MinMeasuredValue/MaxMeasuredValue, in m^3/h. Sized for a
-// residential MULTICAL 403 (qp 1.5, qs 3.0 m^3/h); raise the max for a larger
-// meter variant, or readings above it will be clamped.
-#define FLOW_SENSOR_MIN_M3H 0.0f
-#define FLOW_SENSOR_MAX_M3H 3.0f
+// Range advertised by MinMeasuredValue/MaxMeasuredValue, in l/h. Sized for a
+// residential MULTICAL 403 (qp 1500, qs 3000 l/h); raise the max for a larger
+// meter variant, or readings above it will be clamped. This bounds only the
+// standard cluster -- HM_ATTR_FLOW_ID is published unclamped.
+#define FLOW_SENSOR_MIN_LPH 0
+#define FLOW_SENSOR_MAX_LPH 3000
 
 // Bring-up mode. Work up the ladder as each layer is proven:
 //   NKE_ONLY -> is the bus wired right and does the meter ACK?
@@ -135,6 +150,36 @@ static void update_mbus_gate()
     }
 }
 
+// Why the chip last came up. This is the first thing to look at when the node
+// disappears from the network: a node that is *rebooting* prints this line
+// again with something other than POWERON/SW, and every volatile attribute --
+// the whole Heat Meter cluster included -- is back to null because none of them
+// are NONVOLATILE. A node that is merely *unreachable* never reprints it at
+// all, and the uptime in the heartbeat below keeps climbing.
+//
+// BROWNOUT in particular is the one this board is a candidate for: the M-Bus
+// master's 36 V boost (U2) and the ESP32's 3V3 LDO (U3, MCP1700, 250 mA) share
+// the USB +5V rail, and the poll task starts hitting the boost every 10 s only
+// once commissioning is finished -- which is exactly "after a little bit of
+// time".
+static const char *reset_reason_str(esp_reset_reason_t reason)
+{
+    switch (reason)
+    {
+    case ESP_RST_POWERON:  return "POWERON (cold start)";
+    case ESP_RST_EXT:      return "EXT (reset pin / SW1)";
+    case ESP_RST_SW:       return "SW (esp_restart, e.g. factory reset)";
+    case ESP_RST_PANIC:    return "PANIC (exception or assert)";
+    case ESP_RST_INT_WDT:  return "INT_WDT (interrupt watchdog)";
+    case ESP_RST_TASK_WDT: return "TASK_WDT (task watchdog)";
+    case ESP_RST_WDT:      return "WDT (other watchdog)";
+    case ESP_RST_BROWNOUT: return "BROWNOUT (supply sagged)";
+    case ESP_RST_DEEPSLEEP: return "DEEPSLEEP";
+    case ESP_RST_SDIO:     return "SDIO";
+    default:               return "UNKNOWN";
+    }
+}
+
 // largest is the number that matters, not free: NetworkCommissioning's
 // ScanNetworksResponse needs one contiguous ~1.2 kB malloc (packet buffers come
 // off the CHIP heap on this port), so fragmentation can fail the allocation --
@@ -147,17 +192,264 @@ static void log_heap(const char *phase)
              (unsigned) heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
 }
 
-// The failure we are hunting -- ScanNetworks returning CHIP_ERROR_NO_MEMORY --
-// arrives with no event to hang a log off, so sample instead. The M-Bus gate is
-// already the "not yet on a fabric, or mid-commissioning" signal, and reading it
-// through the event group keeps this task off the Matter thread's state.
+// Thread attachment and service registration, as one line each. Losing the
+// mDNS entry for a Thread node is a symptom two layers removed from the cause:
+// the node's record only reaches the LAN because the node SRP-registers it with
+// the border router, which then proxies it into mDNS. Three things can break,
+// and they need different fixes, so each gets its own reading:
+//
+//   role     -- the live MLE role. DISABLED or DETACHED means the node is off
+//               the mesh entirely, so nothing it registered can be renewed.
+//               This is deliberately otThreadGetDeviceRole() and not
+//               ConnectivityMgr().GetThreadDeviceType(): the latter reports the
+//               *configured* device type, which on this OPENTHREAD_FTD build
+//               reads "Router" whether the node is attached, a Child, or
+//               detached -- i.e. it cannot show the failure being hunted.
+//               A Router also transmits far more than a Child does, which on
+//               this supply is worth correlating against a BROWNOUT above.
+//
+//   srp host -- the node's registration with the border router's SRP server.
+//               REGISTERED is the only healthy steady state. Anything that
+//               stays in TO-ADD/ADDING/TO-REFRESH/REFRESHING is a registration
+//               the node is failing to complete, and the record on the LAN
+//               expires when its lease runs out even though the node is still
+//               happily on the mesh. "not running" means the client has not
+//               found an SRP server in network data at all.
+//
+//   srp svc  -- same, per service. Matter registers _matter._tcp once
+//               commissioned (plus _matterc._udp while a window is open).
+//
+// If role is Child/Router/Leader and every SRP item says Registered, the node
+// is doing its part and the next place to look is the border router.
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+
+#define THREAD_SRP_MAX_LOGGED_SERVICES 4
+
+// Snapshot of everything worth logging, taken in one pass under the OpenThread
+// lock. Strings are copied rather than borrowed: the pointers OpenThread hands
+// out belong to its own buffers and are only safe while the lock is held, and
+// ESP_LOG is far too slow to do while holding it -- a stalled ot_main is
+// exactly the fault this is meant to observe, not cause.
+typedef struct
+{
+    bool stack_up;
+    otDeviceRole role;
+    uint16_t rloc16;
+    uint32_t partition_id;
+
+    bool srp_running;
+    char srp_server[OT_IP6_SOCK_ADDR_STRING_SIZE];
+    uint32_t srp_lease_s;
+    otSrpClientItemState srp_host_state;
+    char srp_host_name[32];
+
+    uint8_t srp_service_count;                  // services actually captured
+    bool srp_services_truncated;                // more than we had room for
+    otSrpClientItemState srp_service_state[THREAD_SRP_MAX_LOGGED_SERVICES];
+    char srp_service_name[THREAD_SRP_MAX_LOGGED_SERVICES][40];
+} thread_state_t;
+
+static void copy_str(char *dst, size_t dst_len, const char *src)
+{
+    if (src == NULL)
+    {
+        snprintf(dst, dst_len, "(null)");
+        return;
+    }
+    snprintf(dst, dst_len, "%s", src);
+}
+
+// Returns false if the stack is not up or the lock could not be taken.
+static bool thread_state_sample(thread_state_t *out)
+{
+    memset(out, 0, sizeof(*out));
+
+    otInstance *ot = esp_openthread_get_instance();
+    if (ot == NULL)
+    {
+        return false;
+    }
+
+    // Bounded, not portMAX_DELAY: the heartbeat is a diagnostic and must never
+    // be able to block on a stack that is already wedged.
+    if (!esp_openthread_lock_acquire(pdMS_TO_TICKS(500)))
+    {
+        return false;
+    }
+
+    out->stack_up = true;
+    out->role = otThreadGetDeviceRole(ot);
+    out->rloc16 = otThreadGetRloc16(ot);
+    out->partition_id = otThreadGetPartitionId(ot);
+
+    out->srp_running = otSrpClientIsRunning(ot);
+    otIp6SockAddrToString(otSrpClientGetServerAddress(ot), out->srp_server, sizeof(out->srp_server));
+    out->srp_lease_s = otSrpClientGetLeaseInterval(ot);
+
+    const otSrpClientHostInfo *host = otSrpClientGetHostInfo(ot);
+    if (host != NULL)
+    {
+        out->srp_host_state = host->mState;
+        copy_str(out->srp_host_name, sizeof(out->srp_host_name), host->mName);
+    }
+    else
+    {
+        copy_str(out->srp_host_name, sizeof(out->srp_host_name), NULL);
+    }
+
+    for (const otSrpClientService *svc = otSrpClientGetServices(ot); svc != NULL; svc = svc->mNext)
+    {
+        if (out->srp_service_count >= THREAD_SRP_MAX_LOGGED_SERVICES)
+        {
+            out->srp_services_truncated = true;
+            break;
+        }
+        const uint8_t i = out->srp_service_count++;
+        out->srp_service_state[i] = svc->mState;
+        snprintf(out->srp_service_name[i], sizeof(out->srp_service_name[i]), "%s.%s",
+                 svc->mInstanceName ? svc->mInstanceName : "?",
+                 svc->mName ? svc->mName : "?");
+    }
+
+    esp_openthread_lock_release();
+    return true;
+}
+
+static void log_thread_state(const thread_state_t *st)
+{
+    if (!st->stack_up)
+    {
+        ESP_LOGW(TAG, "thread: stack down or OpenThread lock unavailable");
+        return;
+    }
+
+    ESP_LOGW(TAG, "thread role=%s rloc16=0x%04x partition=0x%08" PRIx32,
+             otThreadDeviceRoleToString(st->role), st->rloc16, st->partition_id);
+
+    if (!st->srp_running)
+    {
+        // No SRP server in network data. Either no border router is reachable
+        // in this partition, or the node is not attached at all -- the role
+        // above says which.
+        ESP_LOGW(TAG, "srp: client not running (no server in network data)");
+        return;
+    }
+
+    ESP_LOGW(TAG, "srp: server=%s lease=%" PRIu32 "s host=%s state=%s",
+             st->srp_server, st->srp_lease_s, st->srp_host_name,
+             otSrpClientItemStateToString(st->srp_host_state));
+
+    if (st->srp_service_count == 0)
+    {
+        ESP_LOGW(TAG, "srp: no services registered");
+    }
+    for (uint8_t i = 0; i < st->srp_service_count; i++)
+    {
+        ESP_LOGW(TAG, "srp: svc %s state=%s", st->srp_service_name[i],
+                 otSrpClientItemStateToString(st->srp_service_state[i]));
+    }
+    if (st->srp_services_truncated)
+    {
+        ESP_LOGW(TAG, "srp: more services than the %d this logs",
+                 THREAD_SRP_MAX_LOGGED_SERVICES);
+    }
+}
+
+// A detach-and-reattach that fails to re-register with SRP is the prime
+// suspect, and it can easily start and finish inside one 60 s heartbeat. So
+// poll the cheap fields often and print immediately when any of them moves,
+// rather than only on the heartbeat -- otherwise the log shows a healthy node
+// before and a missing record after, with nothing in between.
+static bool thread_state_changed(const thread_state_t *a, const thread_state_t *b)
+{
+    if (a->stack_up != b->stack_up || a->role != b->role ||
+        a->rloc16 != b->rloc16 || a->partition_id != b->partition_id ||
+        a->srp_running != b->srp_running || a->srp_host_state != b->srp_host_state ||
+        a->srp_service_count != b->srp_service_count ||
+        strcmp(a->srp_server, b->srp_server) != 0)
+    {
+        return true;
+    }
+    for (uint8_t i = 0; i < a->srp_service_count; i++)
+    {
+        if (a->srp_service_state[i] != b->srp_service_state[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
+// The heap failure we are hunting -- ScanNetworks returning
+// CHIP_ERROR_NO_MEMORY -- arrives with no event to hang a log off, so sample
+// instead. The M-Bus gate is already the "not yet on a fabric, or
+// mid-commissioning" signal, and reading it through the event group keeps this
+// task off the Matter thread's state.
+
+// Sampling cadence. THREAD_WATCH_POLL_MS is how often the Thread/SRP state
+// above is read and compared; HEARTBEAT_*_MS is how often the full uptime +
+// heap + network line prints whether or not anything moved.
+#define THREAD_WATCH_POLL_MS 5000
+#define HEARTBEAT_IDLE_MS 60000
+#define HEARTBEAT_COMMISSIONING_MS 2000
+
 static void heap_watch_task(void *arg)
 {
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+    thread_state_t prev;
+    memset(&prev, 0, sizeof(prev));
+    bool have_prev = false;
+#endif
+    uint32_t since_heartbeat_ms = UINT32_MAX; // force one on the first pass
+
     for (;;)
     {
         const bool commissioning = (xEventGroupGetBits(s_app_events) & APP_EVENT_MBUS_ENABLED) == 0;
-        log_heap(commissioning ? "commissioning" : "idle");
-        vTaskDelay((commissioning ? 2000 : 60000) / portTICK_PERIOD_MS);
+        const uint32_t heartbeat_ms = commissioning ? HEARTBEAT_COMMISSIONING_MS : HEARTBEAT_IDLE_MS;
+        const bool heartbeat_due = since_heartbeat_ms >= heartbeat_ms;
+
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+        // On failure `now` is zeroed with stack_up false, which is itself
+        // worth printing -- so the return value adds nothing here.
+        thread_state_t now;
+        (void) thread_state_sample(&now);
+        const bool changed = !have_prev || thread_state_changed(&prev, &now);
+#endif
+
+        if (heartbeat_due)
+        {
+            // Uptime is the cheapest way to tell a reboot from a hang: if the
+            // node goes quiet on the network and this number restarts from
+            // zero, it rebooted, and reset_reason_str() above says why.
+            ESP_LOGW(TAG, "uptime %" PRIu32 " s", (uint32_t)(esp_log_timestamp() / 1000));
+            log_heap(commissioning ? "commissioning" : "idle");
+        }
+
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+        if (heartbeat_due || changed)
+        {
+            if (changed && !heartbeat_due)
+            {
+                ESP_LOGW(TAG, "thread/srp state changed at uptime %" PRIu32 " s",
+                         (uint32_t)(esp_log_timestamp() / 1000));
+            }
+            log_thread_state(&now);
+        }
+        prev = now;
+        have_prev = true;
+#endif
+
+        if (heartbeat_due)
+        {
+            since_heartbeat_ms = 0;
+        }
+
+        // Poll fast enough to catch a role flap even when the heartbeat is
+        // slow, but never slower than the heartbeat itself asks for.
+        const uint32_t delay_ms = (heartbeat_ms < THREAD_WATCH_POLL_MS) ? heartbeat_ms : THREAD_WATCH_POLL_MS;
+        vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        since_heartbeat_ms += delay_ms;
     }
 }
 
@@ -280,19 +572,22 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type,
 
 // --- Pushing meter values into the Matter data model -----------------------
 
-// Scale a flow rate in m^3/h to the Flow Measurement cluster's 0.1 m^3/h
-// counts, clamped to the range the cluster advertises. A reading outside that
-// range means FLOW_SENSOR_MAX_M3H is wrong for the meter on the bus, so say so
-// rather than silently reporting a wrong number.
-static uint16_t flow_to_measured_value(float flow_m3h)
+// Scale a flow rate in l/h to the Flow Measurement cluster's 0.1 m^3/h counts,
+// clamped to the range the cluster advertises. A reading outside that range
+// means FLOW_SENSOR_MAX_LPH is wrong for the meter on the bus, so say so rather
+// than silently reporting a wrong number.
+static uint16_t flow_to_measured_value(int32_t flow_lph)
 {
-    if (flow_m3h < FLOW_SENSOR_MIN_M3H || flow_m3h > FLOW_SENSOR_MAX_M3H)
+    if (flow_lph < FLOW_SENSOR_MIN_LPH || flow_lph > FLOW_SENSOR_MAX_LPH)
     {
-        ESP_LOGW(TAG, "flow %.3f m3/h is outside the advertised range %.1f..%.1f -- clamping",
-                 flow_m3h, FLOW_SENSOR_MIN_M3H, FLOW_SENSOR_MAX_M3H);
-        flow_m3h = (flow_m3h < FLOW_SENSOR_MIN_M3H) ? FLOW_SENSOR_MIN_M3H : FLOW_SENSOR_MAX_M3H;
+        ESP_LOGW(TAG, "flow %ld l/h is outside the advertised range %d..%d -- clamping",
+                 (long)flow_lph, FLOW_SENSOR_MIN_LPH, FLOW_SENSOR_MAX_LPH);
+        flow_lph = (flow_lph < FLOW_SENSOR_MIN_LPH) ? FLOW_SENSOR_MIN_LPH : FLOW_SENSOR_MAX_LPH;
     }
-    return (uint16_t)lroundf(flow_m3h * FLOW_MEASUREMENT_PER_M3H);
+    // Round to nearest count. The clamp above leaves flow_lph non-negative, so
+    // the usual integer-division-rounds-toward-zero trap does not apply.
+    return (uint16_t)((flow_lph + FLOW_MEASUREMENT_LPH_PER_COUNT / 2) /
+                      FLOW_MEASUREMENT_LPH_PER_COUNT);
 }
 
 // Called on the Matter/CHIP thread (via ScheduleLambda) so attribute::update is
@@ -303,11 +598,11 @@ static void publish_meter_data(const heat_meter_data_t &d)
     // the standard Flow Measurement cluster for interoperability.
     if (d.has_flow)
     {
-        nullable<float> v; v = d.flow_m3h;
-        esp_matter_attr_val_t val = esp_matter_nullable_float(v);
+        nullable<int32_t> v; v = d.flow_lph;
+        esp_matter_attr_val_t val = esp_matter_nullable_int32(v);
         attribute::update(heat_meter_endpoint_id, HEAT_METER_CLUSTER_ID, HM_ATTR_FLOW_ID, &val);
 
-        nullable<uint16_t> mv; mv = flow_to_measured_value(d.flow_m3h);
+        nullable<uint16_t> mv; mv = flow_to_measured_value(d.flow_lph);
         esp_matter_attr_val_t mval = esp_matter_nullable_uint16(mv);
         attribute::update(flow_endpoint_id, FlowMeasurement::Id,
                           FlowMeasurement::Attributes::MeasuredValue::Id, &mval);
@@ -403,19 +698,33 @@ static void mbus_poll_task(void *arg)
             if (mbus_parse(user, user_len, &data) == ESP_OK)
             {
                 ESP_LOGI(TAG,
-                         "flow=%.3f m3/h Tflow=%.2f Tret=%.2f power=%.1f W",
-                         data.has_flow ? data.flow_m3h : NAN,
+                         // flow is -1 when not reported; l/h is never negative.
+                         "flow=%ld l/h Tflow=%.2f Tret=%.2f power=%.1f W",
+                         data.has_flow ? (long)data.flow_lph : -1L,
                          data.has_flow_temp ? data.flow_temp_c : NAN,
                          data.has_return_temp ? data.return_temp_c : NAN,
                          data.has_power ? data.power_w : NAN);
 
                 // ScheduleLambda only stores a small closure (<= 24 bytes), so
                 // pass the snapshot by heap pointer, not by value.
+                //
+                // The delete lives inside the lambda, so a ScheduleLambda that
+                // fails -- it posts to the CHIP event queue, which is bounded
+                // and can be full -- never runs it and leaks the snapshot. On a
+                // 10 s poll that is a slow bleed rather than a crash, which is
+                // exactly the shape of fault that ends with a node that has
+                // been up for hours quietly failing to allocate a packet
+                // buffer. So own it here when the post does not take.
                 heat_meter_data_t *snapshot = new heat_meter_data_t(data);
-                chip::DeviceLayer::SystemLayer().ScheduleLambda([snapshot]() {
+                CHIP_ERROR sched_err = chip::DeviceLayer::SystemLayer().ScheduleLambda([snapshot]() {
                     publish_meter_data(*snapshot);
                     delete snapshot;
                 });
+                if (sched_err != CHIP_NO_ERROR)
+                {
+                    ESP_LOGE(TAG, "Failed to schedule publish: %" CHIP_ERROR_FORMAT, sched_err.Format());
+                    delete snapshot;
+                }
             }
             else
             {
@@ -464,7 +773,7 @@ static void create_heat_meter_endpoint(node_t *node)
     ABORT_APP_ON_FAILURE(hm != nullptr, ESP_LOGE(TAG, "Failed to create heat meter cluster"));
 
     uint16_t flags = ATTRIBUTE_FLAG_NULLABLE;
-    attribute::create(hm, HM_ATTR_FLOW_ID, flags, esp_matter_nullable_float(nullable<float>()));
+    attribute::create(hm, HM_ATTR_FLOW_ID, flags, esp_matter_nullable_int32(nullable<int32_t>()));
     attribute::create(hm, HM_ATTR_FLOW_TEMP_ID, flags, esp_matter_nullable_int32(nullable<int32_t>()));
     attribute::create(hm, HM_ATTR_RETURN_TEMP_ID, flags, esp_matter_nullable_int32(nullable<int32_t>()));
     attribute::create(hm, HM_ATTR_POWER_ID, flags, esp_matter_nullable_int64(nullable<int64_t>()));
@@ -482,9 +791,9 @@ static void create_flow_sensor_endpoint(node_t *node)
 {
     flow_sensor::config_t config;
     config.flow_measurement.min_measured_value =
-        (uint16_t)lroundf(FLOW_SENSOR_MIN_M3H * FLOW_MEASUREMENT_PER_M3H);
+        (uint16_t)(FLOW_SENSOR_MIN_LPH / FLOW_MEASUREMENT_LPH_PER_COUNT);
     config.flow_measurement.max_measured_value =
-        (uint16_t)lroundf(FLOW_SENSOR_MAX_M3H * FLOW_MEASUREMENT_PER_M3H);
+        (uint16_t)(FLOW_SENSOR_MAX_LPH / FLOW_MEASUREMENT_LPH_PER_COUNT);
     // measured_value is left null until the first telegram is decoded.
 
     endpoint_t *ep = flow_sensor::create(node, &config, ENDPOINT_FLAG_NONE, NULL);
@@ -496,6 +805,10 @@ static void create_flow_sensor_endpoint(node_t *node)
 
 extern "C" void app_main()
 {
+    // First line of every boot, before anything else can fail: if the node is
+    // silently power-cycling, this is the evidence.
+    ESP_LOGW(TAG, "boot: reset reason %s", reset_reason_str(esp_reset_reason()));
+
     nvs_flash_init();
 
     // Must exist before esp_matter::start(), which can deliver events, and
@@ -556,6 +869,8 @@ extern "C" void app_main()
         update_mbus_gate();
     });
 
-    xTaskCreate(heap_watch_task, "heap_watch", 2560, NULL, 1, NULL);
+    // 4096: the heartbeat holds two thread_state_t snapshots (~280 bytes each)
+    // on its stack to diff them, on top of the log formatting.
+    xTaskCreate(heap_watch_task, "heap_watch", 4096, NULL, 1, NULL);
     xTaskCreate(mbus_poll_task, "mbus_poll", 4096, NULL, 5, NULL);
 }

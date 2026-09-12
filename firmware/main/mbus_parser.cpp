@@ -110,7 +110,8 @@ static void classify(uint8_t vif, double value, heat_meter_data_t *out)
             continue;
         }
 
-        float scaled = (float)(value * pow10i(a->scalar + (int)(vif - a->base)));
+        int exp = a->scalar + (int)(vif - a->base);
+        float scaled = (float)(value * pow10i(exp));
 
         switch (a->field) {
         case FIELD_POWER:
@@ -118,7 +119,12 @@ static void classify(uint8_t vif, double value, heat_meter_data_t *out)
             out->has_power = true;
             break;
         case FIELD_FLOW:
-            out->flow_m3h = scaled;
+            // Flow bypasses `scaled` and stays an integer from the wire to the
+            // Matter attribute, because HM_ATTR_FLOW_ID publishes l/h. The
+            // accepted VIF run spans 10^-3..10^0 m^3/h, so exp+3 is 0..3 and
+            // the conversion is a whole-number multiply of digits the meter
+            // already sent -- there is no fraction to round away.
+            out->flow_lph = (int32_t)llround(value * pow10i(exp + 3));
             out->has_flow = true;
             break;
         case FIELD_FLOW_TEMP:

@@ -19,7 +19,7 @@ typedef struct {
     bool   has_return_temp;
     bool   has_power;
 
-    float  flow_m3h;         // m^3/h
+    int32_t flow_lph;        // l/h, as an exact integer (see classify())
     float  flow_temp_c;      // deg C
     float  return_temp_c;    // deg C
     float  power_w;          // W
