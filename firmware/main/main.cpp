@@ -105,18 +105,24 @@ static uint16_t heat_meter_endpoint_id = 0; // custom high-precision cluster
 #define MBUS_TEST_INTERVAL_MS 3000
 
 // 802.15.4 transmit power. The C6 will go to +20 dBm, which is far more than a
-// domestic Thread mesh needs and more than this board's 3V3 LDO (U3, MCP1700,
-// 250 mA) has headroom for -- the board brownout-resets when the radio comes up
-// while BLE is still connected. IDF 5.5 exposes no Kconfig for this, so it is
+// domestic Thread mesh needs and more than this board's supply is comfortable
+// with -- the board brownout-resets when the radio comes up while BLE is still
+// connected. The 3V3 LDO (U4, AP2112K-3.3) is rated 600 mA, so its current
+// limit is not the constraint; its dissipation is. In SOT-23-5 it drops
+// 5 V - 3.3 V = 1.7 V, so 200 mA average is 0.34 W into a package of roughly
+// 200 C/W -- tens of degrees of rise, next to a boost converter that is also
+// warming the same copper. IDF 5.5 exposes no Kconfig for TX power, so it is
 // clamped at runtime. Raise it if the mesh turns out to need the range.
 #define THREAD_TX_POWER_DBM 9
 
 // Gate for the M-Bus poll task. Set only while talking to the meter is both
 // safe and useful: a fabric exists and no commissioning is in flight. The M-Bus
-// master's 36 V boost (U2) is hard-enabled and its input current is drawn from
-// the same USB +5V rail as the ESP32's regulator, so polling the meter during
-// commissioning piles load onto the supply at exactly the moment the radio
-// needs it. There is also nothing to publish to before a fabric exists.
+// master's 35 V boost (U2) has ~SHDN tied straight to its own input, so it runs
+// whenever USB is plugged in and firmware cannot shut it off. Its input current
+// comes from the same USB +5V rail as the ESP32's regulator -- and that rail
+// carries only C7, 1 uF -- so polling the meter during commissioning piles load
+// onto the supply at exactly the moment the radio needs it. There is also
+// nothing to publish to before a fabric exists.
 #define APP_EVENT_MBUS_ENABLED BIT0
 
 static EventGroupHandle_t s_app_events;
@@ -158,7 +164,7 @@ static void update_mbus_gate()
 // all, and the uptime in the heartbeat below keeps climbing.
 //
 // BROWNOUT in particular is the one this board is a candidate for: the M-Bus
-// master's 36 V boost (U2) and the ESP32's 3V3 LDO (U3, MCP1700, 250 mA) share
+// master's 35 V boost (U2) and the ESP32's 3V3 LDO (U4, AP2112K-3.3, 600 mA) share
 // the USB +5V rail, and the poll task starts hitting the boost every 10 s only
 // once commissioning is finished -- which is exactly "after a little bit of
 // time".
@@ -166,8 +172,17 @@ static const char *reset_reason_str(esp_reset_reason_t reason)
 {
     switch (reason)
     {
-    case ESP_RST_POWERON:  return "POWERON (cold start)";
-    case ESP_RST_EXT:      return "EXT (reset pin / SW1)";
+    // POWERON is three different events on this chip, not one. The C6 ROM has
+    // no reset code for the EN pin at all, and in soc/reset_reasons.h
+    // RESET_REASON_CHIP_BROWN_OUT is *the same value* (0x01) as
+    // RESET_REASON_CHIP_POWER_ON -- so a cold start, an SW1/EN press and a
+    // chip-level supply collapse are indistinguishable here. Do not read
+    // POWERON as "somebody pressed reset" or as "the supply is fine".
+    // ESP_RST_BROWNOUT below is the *digital core* detector
+    // (RESET_REASON_SYS_BROWN_OUT, 0x0F), which is the one CONFIG_ESP_
+    // BROWNOUT_DET_LVL controls and the only sag that names itself.
+    case ESP_RST_POWERON:  return "POWERON (cold start, SW1/EN, or chip-level brownout -- C6 cannot tell these apart)";
+    case ESP_RST_EXT:      return "EXT (never produced on ESP32-C6 -- an EN reset arrives as POWERON)";
     case ESP_RST_SW:       return "SW (esp_restart, e.g. factory reset)";
     case ESP_RST_PANIC:    return "PANIC (exception or assert)";
     case ESP_RST_INT_WDT:  return "INT_WDT (interrupt watchdog)";
