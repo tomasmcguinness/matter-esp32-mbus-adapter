@@ -33,3 +33,14 @@ CONFIG_ENABLE_EXTENDED_DISCOVERY=y
 # Chip shell off: it costs a task stack plus several kB of RAM that the device
 # cannot spare at the commissioning peak. Re-enable locally when debugging.
 CONFIG_ENABLE_CHIP_SHELL=n
+
+# Brownout threshold. IDF's default on the C6 is level 7 = 2.51 V, which is far
+# below the chip's 3.0 V minimum operating voltage: a sag to 2.6-2.9 V leaves
+# the C6 running out of spec -- failed flash reads, a corrupt boot banner, a
+# dead radio -- without ever tripping the detector, so the reset reason comes
+# back as something other than BROWNOUT and the supply looks innocent.
+# Level 3 = 3.10 V sits just under the regulator's nominal output, so any real
+# sag reports itself as ESP_RST_BROWNOUT in the boot log instead of hiding.
+# DIAGNOSTIC while chasing the dead-board/reset fault: if the 5 V rail turns out
+# to be clean, put this back to SEL_7 so the node rides out cosmetic dips.
+CONFIG_ESP_BROWNOUT_DET_LVL_SEL_3=y
