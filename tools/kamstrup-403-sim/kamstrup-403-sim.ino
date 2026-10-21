@@ -196,6 +196,8 @@ static uint8_t encode_records(uint8_t *r) {
  *         between characters. 0 is what a real meter does; the stop bit alone
  *         gives the master 417 us at 2400 baud, and 10000 us is what the
  *         HWHardsoft reference sketch does.
+ *   ?     reprint the link config and a status line (counters, knob settings).
+ *         The same status line is logged every HEARTBEAT_MS on its own.
  * Length and pattern are independent, which is the whole point - see
  * mbus_fill_byte in mbusslave.h. */
 /* --------------------------------------------------------------------------
@@ -328,6 +330,134 @@ static void report_fill(void) {
   DEBUG_SERIAL.println(F(")"));
 }
 
+/* --------------------------------------------------------------------------
+ * Logging
+ *
+ * Every event line starts with [seconds.millis] since boot, so the Pico's log
+ * can be lined up against the master's. Lines indented by two spaces belong to
+ * the timestamped line above them.
+ * ------------------------------------------------------------------------ */
+#define HEARTBEAT_MS 30000 /* status line while running, traffic or not */
+
+static struct {
+  uint32_t frames_rx;    /* well-formed frames, ours or not */
+  uint32_t bad_frames;   /* mbus_get_response() < 0 */
+  uint32_t ignored;      /* well-formed but not for us, or not handled */
+  uint32_t noise_bytes;  /* skipped while hunting for a start byte */
+  uint32_t telegrams_tx; /* RSP_UD sent */
+  uint32_t acks_tx;      /* E5 sent */
+  uint32_t last_rx_ms;   /* 0 = nothing received yet */
+} stats;
+
+static void log_ts(void) {
+  uint32_t ms = millis();
+  uint32_t frac = ms % 1000;
+  DEBUG_SERIAL.print('[');
+  DEBUG_SERIAL.print(ms / 1000);
+  DEBUG_SERIAL.print('.');
+  if (frac < 100) DEBUG_SERIAL.print('0');
+  if (frac < 10) DEBUG_SERIAL.print('0');
+  DEBUG_SERIAL.print(frac);
+  DEBUG_SERIAL.print(F("] "));
+}
+
+static void print_hex2(uint8_t b) {
+  if (b < 0x10) DEBUG_SERIAL.print('0');
+  DEBUG_SERIAL.print(b, HEX);
+}
+
+static void print_bytes(const uint8_t *bytes, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    print_hex2(bytes[i]);
+    DEBUG_SERIAL.print(' ');
+  }
+  DEBUG_SERIAL.println();
+}
+
+/* Link settings and identity. Printed at boot, and again by '?' for when the
+ * monitor was attached after the banner went past. */
+static void print_config(void) {
+  uint8_t id[4];
+  mbus_id_bytes(id);
+
+  DEBUG_SERIAL.print(F("primary address: 0x"));
+  print_hex2(mbus_address);
+  DEBUG_SERIAL.println();
+  DEBUG_SERIAL.print(F("baud rate: "));
+  DEBUG_SERIAL.println(mbus_baud_rate);
+#if MBUS_SERIAL_PINS_FIXED
+  DEBUG_SERIAL.println(F("uart pins: core default for Serial1 (GP0 TX, GP1 RX)"));
+#else
+  DEBUG_SERIAL.print(F("uart pins: GP"));
+  DEBUG_SERIAL.print(MBUS_TX_PIN);
+  DEBUG_SERIAL.print(F(" TX, GP"));
+  DEBUG_SERIAL.print(MBUS_RX_PIN);
+  DEBUG_SERIAL.println(F(" RX"));
+#endif
+  DEBUG_SERIAL.print(F("serial (secondary address): "));
+  DEBUG_SERIAL.println(KAM_SERIAL);
+  DEBUG_SERIAL.print(F("id bytes: "));
+  print_bytes(id, sizeof(id));
+}
+
+/* One line saying the sim is alive, what it has seen, and which bench knobs
+ * are away from their defaults - so a quiet console can be told apart from a
+ * hung Pico or a master that has stopped polling. */
+static void print_status(void) {
+  DEBUG_SERIAL.print(F("status: rx "));
+  DEBUG_SERIAL.print(stats.frames_rx);
+  DEBUG_SERIAL.print(F(" frames ("));
+  DEBUG_SERIAL.print(stats.bad_frames);
+  DEBUG_SERIAL.print(F(" bad, "));
+  DEBUG_SERIAL.print(stats.ignored);
+  DEBUG_SERIAL.print(F(" ignored, "));
+  DEBUG_SERIAL.print(stats.noise_bytes);
+  DEBUG_SERIAL.print(F(" noise bytes), tx "));
+  DEBUG_SERIAL.print(stats.telegrams_tx);
+  DEBUG_SERIAL.print(F(" telegrams + "));
+  DEBUG_SERIAL.print(stats.acks_tx);
+  DEBUG_SERIAL.print(F(" ACKs, "));
+  if (stats.last_rx_ms == 0) {
+    DEBUG_SERIAL.print(F("nothing received yet - is the master polling?"));
+  } else {
+    DEBUG_SERIAL.print(F("last rx "));
+    DEBUG_SERIAL.print((millis() - stats.last_rx_ms) / 1000.0, 1);
+    DEBUG_SERIAL.print(F(" s ago"));
+  }
+  DEBUG_SERIAL.println();
+
+  DEBUG_SERIAL.print(F("  addr 0x"));
+  print_hex2(mbus_address);
+  DEBUG_SERIAL.print(F(", "));
+  DEBUG_SERIAL.print(mbus_baud_rate);
+  DEBUG_SERIAL.print(F(" baud, "));
+  DEBUG_SERIAL.print(sim_records);
+  DEBUG_SERIAL.print(F(" records, fill "));
+  if (mbus_fill_byte < 0) {
+    DEBUG_SERIAL.print(F("off"));
+  } else {
+    DEBUG_SERIAL.print(F("0x"));
+    print_hex2((uint8_t)mbus_fill_byte);
+  }
+  DEBUG_SERIAL.print(F(", gap "));
+  DEBUG_SERIAL.print(mbus_tx_gap_us);
+  DEBUG_SERIAL.print(F(" us"));
+  if (device_selected) DEBUG_SERIAL.print(F(", secondary-selected"));
+  if (mbus_hold == HOLD_SPACE) DEBUG_SERIAL.print(F(", HOLDING SPACE"));
+  if (mbus_hold == HOLD_MARK) DEBUG_SERIAL.print(F(", HOLDING MARK"));
+  if (sim_continuous) DEBUG_SERIAL.print(F(", CONTINUOUS TX"));
+  DEBUG_SERIAL.println();
+}
+
+static void heartbeat(void) {
+  static uint32_t last_ms = 0;
+  uint32_t now = millis();
+  if ((uint32_t)(now - last_ms) < HEARTBEAT_MS) return;
+  last_ms = now;
+  log_ts();
+  print_status();
+}
+
 static void poll_console(void) {
   /* 'f' takes two hex digits. The partial value is kept across calls so the
    * console never blocks waiting for the rest of them. */
@@ -355,6 +485,11 @@ static void poll_console(void) {
     if (c == 'f') {
       fill_digits = 2;
       fill_acc = 0;
+      continue;
+    }
+    if (c == '?') {
+      print_config();
+      print_status();
       continue;
     }
     if (c == 's') {
@@ -407,15 +542,6 @@ static void poll_console(void) {
     DEBUG_SERIAL.print((4 + (3 + 12 + rl) + 2) * 11.0 / MBUS_BAUD_RATE_DEFAULT * 1000.0, 0);
     DEBUG_SERIAL.println(F(" ms on the wire)"));
   }
-}
-
-static void print_bytes(const uint8_t *bytes, size_t len) {
-  for (size_t i = 0; i < len; i++) {
-    if (bytes[i] < 0x10) DEBUG_SERIAL.print('0');
-    DEBUG_SERIAL.print(bytes[i], HEX);
-    DEBUG_SERIAL.print(' ');
-  }
-  DEBUG_SERIAL.println();
 }
 
 /* Compare the HAT's loopback against what we asked it to transmit - the slave
@@ -498,13 +624,27 @@ static void send_data_response(uint8_t address, bool verbose) {
   int len = mbus_build_frame(MBUS_RSP_UD, address, records, records_len,
                              frame, sizeof(frame));
   if (len < 0) {
-    if (DEBUG) DEBUG_SERIAL.println(F("mbus: response too large"));
+    if (DEBUG) {
+      log_ts();
+      DEBUG_SERIAL.println(F("mbus: response too large"));
+    }
     return;
   }
+  uint32_t tx_start = millis();
   mbus_transmit(frame, (size_t)len);
+  stats.telegrams_tx++;
 
   digitalWrite(LED_BUILTIN, HIGH);
   if (DEBUG && verbose) {
+    /* Access number sits after 68 L L 68, C A CI, ID[4], mfr[2], ver, medium. */
+    log_ts();
+    DEBUG_SERIAL.print(F("tx: RSP_UD access #"));
+    DEBUG_SERIAL.print(frame[15]);
+    DEBUG_SERIAL.print(F(", "));
+    DEBUG_SERIAL.print(len);
+    DEBUG_SERIAL.print(F(" bytes in "));
+    DEBUG_SERIAL.print(millis() - tx_start);
+    DEBUG_SERIAL.println(F(" ms (incl. echo drain)"));
     DEBUG_SERIAL.print(F("tx: "));
     print_bytes(frame, (size_t)len);
     mbus_report_echo(frame, (size_t)len);
@@ -513,38 +653,46 @@ static void send_data_response(uint8_t address, bool verbose) {
   digitalWrite(LED_BUILTIN, LOW);
 }
 
+/* Every ACK goes through here so it is counted and shows up in the log. */
+static void send_ack(void) {
+  mbus_send_ack();
+  stats.acks_tx++;
+  if (DEBUG) {
+    log_ts();
+    DEBUG_SERIAL.println(F("tx: E5 (ACK)"));
+  }
+}
+
+/* Why the frame was dropped, plus whatever had arrived before it was. */
+static void report_bad_frame(const uint8_t *rx) {
+  log_ts();
+  DEBUG_SERIAL.print(F("rx: bad frame - "));
+  DEBUG_SERIAL.print(mbus_rx_error);
+  DEBUG_SERIAL.print(F(", got "));
+  DEBUG_SERIAL.print(mbus_rx_len);
+  DEBUG_SERIAL.println(F(" byte(s):"));
+  DEBUG_SERIAL.print(F("  "));
+  print_bytes(rx, mbus_rx_len);
+}
+
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
 
   DEBUG_SERIAL.begin(115200);
+  /* USB CDC: give a monitor up to 3 s to attach so the banner is not lost.
+   * Does not block headless - '?' reprints the config later anyway. */
+  while (!DEBUG_SERIAL && millis() < 3000) delay(10);
 
   mbus_serial_begin();
   delay(1000); /* let the UART settle, or the first frame is garbage */
 
   sim_init();
 
-  uint8_t id[4];
-  mbus_id_bytes(id);
-
   DEBUG_SERIAL.println(F("Kamstrup MULTICAL 403 M-Bus slave simulator"));
-  DEBUG_SERIAL.print(F("primary address: 0x"));
-  DEBUG_SERIAL.println(mbus_address, HEX);
-  DEBUG_SERIAL.print(F("baud rate: "));
-  DEBUG_SERIAL.println(mbus_baud_rate);
-#if MBUS_SERIAL_PINS_FIXED
-  DEBUG_SERIAL.println(F("uart pins: core default for Serial1 (GP0 TX, GP1 RX)"));
-#else
-  DEBUG_SERIAL.print(F("uart pins: GP"));
-  DEBUG_SERIAL.print(MBUS_TX_PIN);
-  DEBUG_SERIAL.print(F(" TX, GP"));
-  DEBUG_SERIAL.print(MBUS_RX_PIN);
-  DEBUG_SERIAL.println(F(" RX"));
-#endif
-  DEBUG_SERIAL.print(F("serial (secondary address): "));
-  DEBUG_SERIAL.println(KAM_SERIAL);
-  DEBUG_SERIAL.print(F("id bytes: "));
-  print_bytes(id, sizeof(id));
+  print_config();
+  DEBUG_SERIAL.println(F("console: 1-8 records, fHH/p/r fill, g gap, s hold, "
+                         "t continuous, ? status"));
 
   /* Golden frame: the telegram as it stands at t = 0, for checking the length
    * and checksum by hand and for pasting into an offline decoder. It carries
@@ -562,6 +710,7 @@ void setup() {
 void loop() {
   sim_tick();
   poll_console();
+  if (DEBUG) heartbeat();
 
   /* Line parked for a meter reading. MARK needs nothing done - an idle UART
    * already holds the line at mark. SPACE streams zeros; flush() so the bytes
@@ -586,14 +735,42 @@ void loop() {
   uint8_t rx[MBUS_DATA_SIZE];
   int n = mbus_get_response(rx, sizeof(rx));
 
+  /* Noise is accumulated here and reported alongside the next frame, rather
+   * than per byte, so a noisy line does not flood the console. */
+  static uint32_t noise_since_frame = 0;
+  stats.noise_bytes += mbus_rx_skipped;
+  noise_since_frame += mbus_rx_skipped;
+  mbus_rx_skipped = 0;
+
   if (n == 0) return; /* bus idle */
+
+  stats.last_rx_ms = millis();
+  if (DEBUG && noise_since_frame) {
+    log_ts();
+    DEBUG_SERIAL.print(F("rx: discarded "));
+    DEBUG_SERIAL.print(noise_since_frame);
+    DEBUG_SERIAL.println(F(" byte(s) of noise before this frame "
+                           "(baud/parity mismatch?)"));
+  }
+  noise_since_frame = 0;
+
   if (n < 0) {
-    if (DEBUG) DEBUG_SERIAL.println(F("mbus: bad frame"));
+    stats.bad_frames++;
+    if (DEBUG) report_bad_frame(rx);
     return;
   }
-  if (n == 1) return; /* single-character ACK from the master, nothing to do */
+  stats.frames_rx++;
+  if (n == 1) {
+    /* single-character ACK from the master, nothing to do */
+    if (DEBUG) {
+      log_ts();
+      DEBUG_SERIAL.println(F("rx: E5 (ACK from master)"));
+    }
+    return;
+  }
 
   if (DEBUG) {
+    log_ts();
     DEBUG_SERIAL.print(F("rx: "));
     print_bytes(rx, (size_t)n);
   }
@@ -609,19 +786,34 @@ void loop() {
     bool broadcast = (a == MBUS_ADDR_BROADCAST_NOREPLY ||
                       a == MBUS_ADDR_BROADCAST_REPLY);
 
-    if (!for_us && !broadcast) return;
+    if (!for_us && !broadcast) {
+      stats.ignored++;
+      if (DEBUG) {
+        DEBUG_SERIAL.print(F("  for address 0x"));
+        print_hex2(a);
+        DEBUG_SERIAL.print(F(", we are 0x"));
+        print_hex2(mbus_address);
+        DEBUG_SERIAL.println(F(" - ignored"));
+      }
+      return;
+    }
 
     if (c == MBUS_SND_NKE) {
       if (DEBUG) DEBUG_SERIAL.println(F("  SND_NKE - init slave"));
       device_selected = false;
-      mbus_send_ack();
+      send_ack();
       return;
     }
 
     if ((c & FCB_BIT_MASK) == MBUS_REQ_UD2) {
       /* On a broadcast address, answer only if we were selected by secondary
        * address - otherwise every slave on the bus would talk at once. */
-      if (broadcast && !device_selected) return;
+      if (broadcast && !device_selected) {
+        stats.ignored++;
+        if (DEBUG) DEBUG_SERIAL.println(F("  REQ_UD2 on broadcast, not "
+                                          "secondary-selected - staying quiet"));
+        return;
+      }
       if (DEBUG) DEBUG_SERIAL.println(F("  REQ_UD2 - class 2 data request"));
       send_data_response(mbus_address, true);
       return;
@@ -630,8 +822,15 @@ void loop() {
     if ((c & FCB_BIT_MASK) == MBUS_REQ_UD1) {
       /* No class 1 (alarm) data to report. */
       if (DEBUG) DEBUG_SERIAL.println(F("  REQ_UD1 - no class 1 data"));
-      mbus_send_ack();
+      send_ack();
       return;
+    }
+
+    stats.ignored++;
+    if (DEBUG) {
+      DEBUG_SERIAL.print(F("  short frame with C=0x"));
+      print_hex2(c);
+      DEBUG_SERIAL.println(F(" not handled - ignored"));
     }
     return;
   }
@@ -654,7 +853,8 @@ void loop() {
       DEBUG_SERIAL.print(F("  secondary select - "));
       DEBUG_SERIAL.println(match ? F("selected") : F("not ours"));
     }
-    if (match) mbus_send_ack();
+    if (match) send_ack();
+    else stats.ignored++;
     return;
   }
 
@@ -667,7 +867,7 @@ void loop() {
       DEBUG_SERIAL.print(F("  change address -> 0x"));
       DEBUG_SERIAL.println(mbus_address, HEX);
     }
-    mbus_send_ack();
+    send_ack();
     return;
   }
 
@@ -681,12 +881,23 @@ void loop() {
       DEBUG_SERIAL.print(F("  change baud rate -> "));
       DEBUG_SERIAL.println(mbus_baud_rate);
     }
-    mbus_send_ack(); /* acknowledge at the OLD rate, then switch */
+    send_ack(); /* acknowledge at the OLD rate, then switch */
     delay(100);
     MBUS_SERIAL.end();
     MBUS_SERIAL.begin(mbus_baud_rate, MBUS_SERIAL_CONFIG);
     return;
   }
 
-  if (DEBUG) DEBUG_SERIAL.println(F("  unhandled frame"));
+  stats.ignored++;
+  if (DEBUG) {
+    DEBUG_SERIAL.print(F("  unhandled frame (C=0x"));
+    print_hex2(rx[n == 5 ? 1 : 4]);
+    DEBUG_SERIAL.print(F(" A=0x"));
+    print_hex2(rx[n == 5 ? 2 : 5]);
+    if (n > 6) {
+      DEBUG_SERIAL.print(F(" CI=0x"));
+      print_hex2(rx[6]);
+    }
+    DEBUG_SERIAL.println(F(") - ignored"));
+  }
 }

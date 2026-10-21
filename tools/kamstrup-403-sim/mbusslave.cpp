@@ -15,6 +15,17 @@ uint16_t mbus_tx_gap_us = 0;
 uint8_t mbus_echo[MBUS_FRAME_MAX];
 size_t mbus_echo_len = 0;
 
+const char *mbus_rx_error = "";
+size_t mbus_rx_len = 0;
+uint32_t mbus_rx_skipped = 0;
+
+/* Record why a frame was abandoned and how far it got, then fail. */
+static int rx_fail(const char *why, size_t n) {
+  mbus_rx_error = why;
+  mbus_rx_len = n;
+  return -1;
+}
+
 void mbus_id_bytes(uint8_t out[4]) {
   uint32_t v = KAM_SERIAL;
   for (int i = 0; i < 4; i++) {
@@ -47,16 +58,18 @@ static void mbus_tx_done(void) {
 }
 
 int mbus_get_response(uint8_t *pdata, size_t cap) {
-  if (cap < 6) return -1;
+  if (cap < 6) return rx_fail("receive buffer too small", 0);
 
   /* Hunt for a start byte. Everything else is bus-turnaround noise. */
   int b;
-  do {
+  for (;;) {
     if (!MBUS_SERIAL.available()) return 0;
     b = MBUS_SERIAL.read();
-  } while (b != MBUS_ACK &&
-           b != MBUS_FRAME_SHORT_START &&
-           b != MBUS_FRAME_LONG_START);
+    if (b == MBUS_ACK || b == MBUS_FRAME_SHORT_START ||
+        b == MBUS_FRAME_LONG_START)
+      break;
+    mbus_rx_skipped++;
+  }
 
   size_t n = 0;
   pdata[n++] = (uint8_t)b;
@@ -67,34 +80,38 @@ int mbus_get_response(uint8_t *pdata, size_t cap) {
   } else if (b == MBUS_FRAME_SHORT_START) {
     expected = 5; /* 10 C A CS 16 */
   } else {
-    /* Long/control frame: 68 L L 68 <L user bytes> CS 16 */
+    /* Long/control frame: 68 L L 68 <L user bytes> CS 16. Each byte is stored
+     * as it arrives so a failure can show how far the header got. */
     int len = read_byte_timeout(MBUS_GAP_MS);
-    int len2 = read_byte_timeout(MBUS_GAP_MS);
-    int start2 = read_byte_timeout(MBUS_GAP_MS);
-    if (len < 0 || len2 < 0 || start2 < 0) return -1;
-    if (len != len2) return -1;
-    if (start2 != MBUS_FRAME_LONG_START) return -1;
+    if (len < 0) return rx_fail("timeout waiting for L", n);
     pdata[n++] = (uint8_t)len;
+    int len2 = read_byte_timeout(MBUS_GAP_MS);
+    if (len2 < 0) return rx_fail("timeout waiting for second L", n);
     pdata[n++] = (uint8_t)len2;
+    int start2 = read_byte_timeout(MBUS_GAP_MS);
+    if (start2 < 0) return rx_fail("timeout waiting for second 68", n);
     pdata[n++] = (uint8_t)start2;
+    if (len != len2) return rx_fail("L fields differ", n);
+    if (start2 != MBUS_FRAME_LONG_START) return rx_fail("second start byte is not 68", n);
     expected = 4 + (size_t)len + 2;
   }
-  if (expected > cap) return -1;
+  if (expected > cap) return rx_fail("frame longer than receive buffer", n);
 
   while (n < expected) {
     b = read_byte_timeout(MBUS_GAP_MS);
-    if (b < 0) return -1; /* partial frame - resync on the next start byte */
+    /* partial frame - resync on the next start byte */
+    if (b < 0) return rx_fail("timeout mid-frame (inter-byte gap too long)", n);
     pdata[n++] = (uint8_t)b;
   }
 
-  if (pdata[expected - 1] != MBUS_FRAME_STOP) return -1;
+  if (pdata[expected - 1] != MBUS_FRAME_STOP) return rx_fail("stop byte is not 16", n);
 
   /* Checksum is the plain 8-bit sum of the user-data bytes only:
    * from C up to (not including) the checksum itself. */
   size_t first = (pdata[0] == MBUS_FRAME_SHORT_START) ? 1 : 4;
   uint8_t cs = 0;
   for (size_t i = first; i < expected - 2; i++) cs += pdata[i];
-  if (cs != pdata[expected - 2]) return -1;
+  if (cs != pdata[expected - 2]) return rx_fail("checksum mismatch", n);
 
   return (int)expected;
 }

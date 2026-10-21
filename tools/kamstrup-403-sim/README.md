@@ -156,6 +156,40 @@ the FCB bit (`mbus_request_data()` in `examples/matter/KamstrupMultical403/main/
 depends on FCB state — but `FCB_BIT_MASK` is applied so a master that does
 toggle it still works.
 
+## Debug log
+
+The USB serial console (115200) logs every bus event with a `[seconds.millis]`
+timestamp since boot, so it can be lined up against the master's log. Lines
+indented by two spaces belong to the timestamped line above them.
+
+```
+[42.310] rx: 10 40 05 45 16
+  SND_NKE - init slave
+[42.322] tx: E5 (ACK)
+[42.431] rx: 10 5B 05 60 16
+  REQ_UD2 - class 2 data request
+[42.735] tx: RSP_UD access #7, 63 bytes in 302 ms (incl. echo drain)
+```
+
+What it reports besides normal polls:
+
+- **Bad frames**: the reason (timeout waiting for L, L fields differ,
+  timeout mid-frame, bad stop byte, checksum mismatch) and the bytes received
+  before the frame was dropped.
+- **Line noise**: bytes thrown away while hunting for a start byte. These are
+  reported with the next frame. A steady count usually means the baud rate or
+  parity doesn't match the master.
+- **Ignored frames**: frames for another primary address, broadcast `REQ_UD2`
+  without a secondary select, and C/CI fields the sim doesn't handle.
+- **Heartbeat**: a `status:` line every 30 s with frame/ACK/telegram counters,
+  time since the last rx, and any bench knob that isn't at its default. If
+  "last rx … ago" keeps growing, the master has stopped polling. Type `?` to print
+  the status line plus the link config at any time.
+
+`setup()` waits up to 3 s for the USB monitor to attach, so you see the banner
+if you open the monitor right after reset. Set `DEBUG` to 0 in `mbusslave.h`
+to turn off all of this logging.
+
 ## Verifying against the adapter
 
 ```
