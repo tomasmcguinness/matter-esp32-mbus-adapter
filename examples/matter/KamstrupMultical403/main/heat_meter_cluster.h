@@ -13,7 +13,7 @@
 #define HEAT_METER_CLUSTER_ID        0xFFF1FC01u
 
 // Attribute IDs within the Heat Meter cluster.
-#define HM_ATTR_FLOW_ID            0x0000u  // float,  m^3/h
+#define HM_ATTR_FLOW_ID            0x0000u  // int32,  l/h
 #define HM_ATTR_FLOW_TEMP_ID       0x0001u  // int32,  0.01 degC
 #define HM_ATTR_RETURN_TEMP_ID     0x0002u  // int32,  0.01 degC
 #define HM_ATTR_POWER_ID           0x0003u  // int64,  mW

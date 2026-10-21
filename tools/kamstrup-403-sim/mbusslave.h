@@ -63,8 +63,8 @@
 #endif
 
 /* Link settings. The source of truth is the master:
- *   firmware/main/mbus.cpp:61-73 - 2400 baud, 8 data bits, EVEN parity, 1 stop
- *   firmware/main/mbus.h:9       - primary address 0x05
+ *   examples/matter/KamstrupMultical403/main/mbus.cpp:61-73 - 2400 baud, 8 data bits, EVEN parity, 1 stop
+ *   examples/matter/KamstrupMultical403/main/mbus.h:9       - primary address 0x05
  * A mismatch here is the classic silent failure: the master simply times out
  * having received no bytes at all. */
 #define MBUS_BAUD_RATE_DEFAULT 2400
@@ -193,7 +193,7 @@
  *   reconstruction says otherwise.
  *
  * Not the master's UART driver: the FRAM_ERR and PARITY_ERR paths in
- * esp_driver_uart (checked against ESP-IDF v5.5.4, the version firmware/ builds
+ * esp_driver_uart (checked against ESP-IDF v5.5.4, the version the examples build
  * against) do not reset the RX FIFO - only FIFO overflow and the RS485 modes
  * do - so a bad character does not take buffered good ones with it.
  *
@@ -262,6 +262,19 @@ extern uint16_t mbus_tx_gap_us;
  * Empty until the first transmission. */
 extern uint8_t mbus_echo[MBUS_FRAME_MAX];
 extern size_t mbus_echo_len;
+
+/* Diagnostics for the receive side, so the sketch can say what it threw away.
+ *
+ * mbus_rx_error  why the last mbus_get_response() returned -1. When it does,
+ *                pdata still holds the mbus_rx_len bytes read before giving up,
+ *                so the partial frame can be dumped next to the reason.
+ * mbus_rx_skipped  bytes discarded while hunting for a start byte. Never
+ *                reset here - the caller zeroes it once it has reported them.
+ *                A steady trickle usually means a baud or parity mismatch
+ *                with the master, or the HAT picking up noise. */
+extern const char *mbus_rx_error;
+extern size_t mbus_rx_len;
+extern uint32_t mbus_rx_skipped;
 
 /* Encode KAM_SERIAL as the four BCD identification bytes, LSB first. */
 void mbus_id_bytes(uint8_t out[4]);

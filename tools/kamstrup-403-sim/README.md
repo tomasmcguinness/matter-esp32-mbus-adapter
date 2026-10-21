@@ -1,8 +1,9 @@
 # Kamstrup MULTICAL 403 M-Bus slave simulator
 
 An Arduino sketch that makes a Raspberry Pi Pico answer M-Bus polls the way a
-Kamstrup MULTICAL 403 heat meter does, so the ESP32-C6 adapter in `firmware/`
-can be exercised without the real meter on the desk.
+Kamstrup MULTICAL 403 heat meter does, so the ESP32-C6 adapter firmware in
+`examples/matter/KamstrupMultical403/` can be exercised without the real meter
+on the desk.
 
 Unlike the generic bench slave that `mbus_parse_test()` was written for, this
 emits a telegram a real 403 would send — Kamstrup identity fields, CI `0x72`
@@ -50,7 +51,7 @@ voltage (~36 V) and a slave answers by modulating current, never by driving
 voltage — see `tools/pcb-test/README.md` for the measured master-side numbers.
 
 Link settings are **2400 baud, 8E1, primary address 0x05**, matching
-`firmware/main/mbus.cpp:61-73` and `firmware/main/mbus.h:9`. A mismatch here is
+`examples/matter/KamstrupMultical403/main/mbus.cpp:61-73` and `examples/matter/KamstrupMultical403/main/mbus.h:9`. A mismatch here is
 the classic silent failure: the master just times out having received nothing
 at all.
 
@@ -84,7 +85,7 @@ CS 16
 the 57 bytes from `C` through the last record byte. All data is little-endian.
 
 Every VIF above resolves identically in **both** master decoders — `classify()`
-and the bench table `kVifTest[]` in `firmware/main/mbus_parser.cpp` — and the
+and the bench table `kVifTest[]` in `examples/matter/KamstrupMultical403/main/mbus_parser.cpp` — and the
 records consume exactly `L` bytes, which is what `mbus_parse_test()`'s
 "clean walk" check requires.
 
@@ -151,14 +152,48 @@ broadcast address is answered only after a successful secondary select, so
 several slaves on one bus do not all talk at once.
 
 The adapter's master re-sends SND_NKE before every REQ_UD2 and never toggles
-the FCB bit (`mbus_request_data()` in `firmware/main/mbus.cpp`), so nothing here
+the FCB bit (`mbus_request_data()` in `examples/matter/KamstrupMultical403/main/mbus.cpp`), so nothing here
 depends on FCB state — but `FCB_BIT_MASK` is applied so a master that does
 toggle it still works.
+
+## Debug log
+
+The USB serial console (115200) logs every bus event with a `[seconds.millis]`
+timestamp since boot, so it can be lined up against the master's log. Lines
+indented by two spaces belong to the timestamped line above them.
+
+```
+[42.310] rx: 10 40 05 45 16
+  SND_NKE - init slave
+[42.322] tx: E5 (ACK)
+[42.431] rx: 10 5B 05 60 16
+  REQ_UD2 - class 2 data request
+[42.735] tx: RSP_UD access #7, 63 bytes in 302 ms (incl. echo drain)
+```
+
+What it reports besides normal polls:
+
+- **Bad frames**: the reason (timeout waiting for L, L fields differ,
+  timeout mid-frame, bad stop byte, checksum mismatch) and the bytes received
+  before the frame was dropped.
+- **Line noise**: bytes thrown away while hunting for a start byte. These are
+  reported with the next frame. A steady count usually means the baud rate or
+  parity doesn't match the master.
+- **Ignored frames**: frames for another primary address, broadcast `REQ_UD2`
+  without a secondary select, and C/CI fields the sim doesn't handle.
+- **Heartbeat**: a `status:` line every 30 s with frame/ACK/telegram counters,
+  time since the last rx, and any bench knob that isn't at its default. If
+  "last rx … ago" keeps growing, the master has stopped polling. Type `?` to print
+  the status line plus the link config at any time.
+
+`setup()` waits up to 3 s for the USB monitor to attach, so you see the banner
+if you open the monitor right after reset. Set `DEBUG` to 0 in `mbusslave.h`
+to turn off all of this logging.
 
 ## Verifying against the adapter
 
 ```
-cd firmware && idf.py -p <port> monitor
+cd examples/matter/KamstrupMultical403 && idf.py -p <port> monitor
 ```
 
 `MBUS_LOG_RAW_RX` is already `1`, so compare the master's raw RX hex

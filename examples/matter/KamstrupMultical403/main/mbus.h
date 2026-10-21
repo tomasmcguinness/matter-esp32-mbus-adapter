@@ -6,7 +6,7 @@
 
 // Primary (bus) address of the meter to poll.
 // 0x01..0xFA = primary addressing; 0xFE = broadcast (single meter on the bus).
-#define MBUS_PRIMARY_ADDRESS 0x05
+#define MBUS_PRIMARY_ADDRESS 0x01
 
 // Initialise the UART used to talk to the DYBKRADIO M-Bus <-> TTL adapter.
 void mbus_uart_init(void);

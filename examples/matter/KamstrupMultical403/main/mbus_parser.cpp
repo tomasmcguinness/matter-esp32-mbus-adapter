@@ -61,37 +61,83 @@ static double pow10i(int exp)
     return pow(10.0, (double)exp);
 }
 
-// Map a primary-table VIF + decoded value into the output struct.
+// Registers the Heat Meter cluster publishes, keyed on the primary VIF.
+//
+// Every code here comes from the Kamstrup "Wired M-Bus for MULTICAL 403, 603
+// and 803" technical description (55121890_F1), sections 4.1 and 4.4. A VIF
+// that is not listed is ignored, which is what already happens to the hour
+// counter (0x22), temperature difference (0x61), date/time (0x6D), serial
+// number (0x78) and the manufacturer-specific 0xFF registers.
+//
+// Laid out as runs, like kVifTest[] further down: `base` is the code for the
+// lowest exponent, the run is `size` codes long, and
+// exponent(vif) = scalar + (vif - base).
+//
+// The DIF is deliberately not part of the key. Section 4.4 lists the same
+// register under more than one DIF -- "02 61" and "04 61" are both the t1-t2
+// difference -- because the low nibble is the data coding, which varies from
+// meter to meter. The DIF bits that do matter are the upper nibble, and they
+// mean the same thing for every row here, so mbus_parse() tests them once.
+typedef enum {
+    FIELD_POWER,
+    FIELD_FLOW,
+    FIELD_FLOW_TEMP,
+    FIELD_RETURN_TEMP,
+} field_id_t;
+
+typedef struct {
+    uint8_t    base;
+    uint8_t    size;
+    int8_t     scalar;
+    field_id_t field;
+} vif_accept_t;
+
+static const vif_accept_t kAccept[] = {
+    { 0x2D, 3,  2, FIELD_POWER       }, // Power actual:    0.1 kW .. 10 kW
+    { 0x3B, 4, -3, FIELD_FLOW        }, // Flow V1 actual:  l/h .. m3/h
+    { 0x58, 4, -3, FIELD_FLOW_TEMP   }, // Inlet temp T1
+    { 0x5C, 4, -3, FIELD_RETURN_TEMP }, // Outlet temp T2
+};
+
+// Store a record if its VIF names one of the registers we publish. The caller
+// must already have established that the record is the meter's current
+// instantaneous reading -- see the DIF gate in mbus_parse().
 static void classify(uint8_t vif, double value, heat_meter_data_t *out)
 {
-    if (vif <= 0x07) {                       // Energy, Wh; 10^(n-3)
-        out->energy_wh = value * pow10i((vif & 0x07) - 3);
-        out->has_energy = true;
-    } else if (vif <= 0x0F) {                // Energy, J; 10^(n) J -> Wh
-        double j = value * pow10i(vif & 0x07);
-        out->energy_wh = j / 3600.0;
-        out->has_energy = true;
-    } else if (vif <= 0x17) {                // Volume, m^3; 10^(n-6)
-        out->volume_m3 = value * pow10i((vif & 0x07) - 6);
-        out->has_volume = true;
-    } else if (vif >= 0x28 && vif <= 0x2F) { // Power, W; 10^(n-3)
-        out->power_w = (float)(value * pow10i((vif & 0x07) - 3));
-        out->has_power = true;
-    } else if (vif >= 0x30 && vif <= 0x37) { // Power, J/h; 10^(n) J/h -> W
-        double jph = value * pow10i(vif & 0x07);
-        out->power_w = (float)(jph / 3600.0);
-        out->has_power = true;
-    } else if (vif >= 0x38 && vif <= 0x3F) { // Volume flow, m^3/h; 10^(n-6)
-        out->flow_m3h = (float)(value * pow10i((vif & 0x07) - 6));
-        out->has_flow = true;
-    } else if (vif >= 0x58 && vif <= 0x5B) { // Flow temperature, degC; 10^(n-3)
-        out->flow_temp_c = (float)(value * pow10i((vif & 0x03) - 3));
-        out->has_flow_temp = true;
-    } else if (vif >= 0x5C && vif <= 0x5F) { // Return temperature, degC; 10^(n-3)
-        out->return_temp_c = (float)(value * pow10i((vif & 0x03) - 3));
-        out->has_return_temp = true;
+    for (size_t i = 0; i < sizeof(kAccept) / sizeof(kAccept[0]); i++) {
+        const vif_accept_t *a = &kAccept[i];
+        if (vif < a->base || vif >= (uint8_t)(a->base + a->size)) {
+            continue;
+        }
+
+        int exp = a->scalar + (int)(vif - a->base);
+        float scaled = (float)(value * pow10i(exp));
+
+        switch (a->field) {
+        case FIELD_POWER:
+            out->power_w = scaled;
+            out->has_power = true;
+            break;
+        case FIELD_FLOW:
+            // Flow bypasses `scaled` and stays an integer from the wire to the
+            // Matter attribute, because HM_ATTR_FLOW_ID publishes l/h. The
+            // accepted VIF run spans 10^-3..10^0 m^3/h, so exp+3 is 0..3 and
+            // the conversion is a whole-number multiply of digits the meter
+            // already sent -- there is no fraction to round away.
+            out->flow_lph = (int32_t)llround(value * pow10i(exp + 3));
+            out->has_flow = true;
+            break;
+        case FIELD_FLOW_TEMP:
+            out->flow_temp_c = scaled;
+            out->has_flow_temp = true;
+            break;
+        case FIELD_RETURN_TEMP:
+            out->return_temp_c = scaled;
+            out->has_return_temp = true;
+            break;
+        }
+        return;
     }
-    // Other quantities (mass, temp difference, dates, etc.) are ignored.
 }
 
 esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
@@ -136,6 +182,14 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
 
         uint8_t coding = dif & 0x0F;
 
+        // Upper nibble zero means: no DIFE, storage number 0, and function
+        // field 00 (instantaneous). Anything else is a reading we must not
+        // store -- a MULTICAL 403 repeats each quantity as a maximum (DIF 14),
+        // a minimum (24), a value during error (34), a target-date copy (44,
+        // 54) and a pulse-input subunit (84, C4), all under the SAME VIF. The
+        // DIFE loop below overwrites `dif`, so this has to be read first.
+        bool is_current = (dif & 0xF0) == 0x00;
+
         // Skip DIFEs (bit 7 = extension).
         while ((dif & 0x80) && pos < len) {
             dif = user[pos++];
@@ -147,6 +201,11 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
         }
         uint8_t vif = user[pos++];
         uint8_t vif_primary = vif & 0x7F;
+        // A VIFE means the quantity is not the one the primary VIF names: the
+        // spec's 04 BBFF0D is Flow V2 and 04 ADFF2D is Power 2, and masking
+        // those to 0x7F would read them as the primary circuit's flow and
+        // power. Only bare primary-table VIFs are accepted.
+        bool vif_extended = (vif & 0x80) != 0;
         while ((vif & 0x80) && pos < len) {
             vif = user[pos++]; // consume VIFEs
         }
@@ -189,7 +248,7 @@ esp_err_t mbus_parse(const uint8_t *user, size_t len, heat_meter_data_t *out)
             decoded = true;
         }
 
-        if (decoded) {
+        if (decoded && is_current && !vif_extended) {
             classify(vif_primary, value, out);
         }
     }
@@ -227,19 +286,76 @@ static const vif_test_def_t kVifTest[] = {
     { 0xFD40, 16,  -9, "Voltage",              "V"     },
     { 0xFD50, 16, -12, "Current",              "A"     },
     { 0xFD17,  1,   0, "Error flags",          ""      },
+    { 0xFD08,  1,   0, "Access number",        ""      },
+    { 0xFD09,  1,   0, "Medium",               ""      },
+    { 0xFD0A,  1,   0, "Manufacturer",         ""      },
+    { 0xFD0B,  1,   0, "Parameter set id",     ""      },
+    { 0xFD0C,  1,   0, "Model / version",      ""      },
+    { 0xFD0D,  1,   0, "Hardware version",     ""      },
+    { 0xFD0F,  1,   0, "Software version",     ""      },
+    { 0xFD10,  1,   0, "Customer location",    ""      },
+    { 0xFD11,  1,   0, "Customer",             ""      },
+    { 0xFD18,  1,   0, "Error mask",           ""      },
+    { 0xFD1D,  1,   0, "Response delay time",  ""      },
+    { 0xFD1E,  1,   0, "Retry",                ""      },
+    { 0xFD3C,  1,   0, "Dimensionless",        ""      },
+    { 0xFD60,  1,   0, "Reset counter",        ""      },
+    { 0xFD61,  1,   0, "Cumulation counter",   ""      },
+    { 0xFD63,  1,   0, "Day of week",          ""      },
+    { 0xFD64,  1,   0, "Week number",          ""      },
     // --- 0xFB extension table ---
+    { 0xFB00,  2,  -1, "Energy",               "MWh"   },
+    { 0xFB08,  2,  -1, "Energy",               "GJ"    },
+    { 0xFB10,  2,   2, "Volume",               "m^3"   },
+    { 0xFB18,  2,   2, "Mass",                 "t"     },
     { 0xFB21,  1,  -1, "Volume",               "ft^3"  },
+    { 0xFB28,  2,  -1, "Power",                "MW"    },
+    { 0xFB30,  2,  -1, "Power",                "GJ/h"  },
+    { 0xFB58,  4,  -3, "Flow temperature",     "degF"  },
+    { 0xFB5C,  4,  -3, "Return temperature",   "degF"  },
+    { 0xFB60,  4,  -3, "Temperature diff",     "degF"  },
+    { 0xFB64,  4,  -3, "External temperature", "degF"  },
     { 0xFB78,  8,  -3, "Max power",            "W"     },
+    // --- 0xFF: manufacturer specific ---
+    //
+    // EN 13757-3 assigns 0xFF no meaning, and no public table decodes it -
+    // libmbus stops at "manufacturer specific". These two were derived from a
+    // live MULTICAL 403 telegram rather than looked up, so treat them as
+    // evidence-backed rather than authoritative.
+    //
+    // They are Kamstrup's E8/E9: the volume-weighted temperature integrals the
+    // meter keeps so it can report average T1/T2. (E8 - E9)/V is the lifetime
+    // average dT, and V * dT * 1.163 kWh/m^3/K reproduced the meter's own
+    // energy register to within +0.7% on BOTH the live records and the
+    // target-date (storage 1) set - two independent checks on one telegram.
+    //
+    // FF 16, FF 17, FF 1A and FF 22 are also present on a 403 and remain
+    // unmapped on purpose: guessing them would print confident nonsense, which
+    // is the exact failure walk_is_clean() was written to avoid. They log raw,
+    // which is what identifying them from the meter's own display needs.
+    { 0xFF07,  1,   0, "Volume x flow temp",   "m^3*degC" },
+    { 0xFF08,  1,   0, "Volume x return temp", "m^3*degC" },
     // --- primary table: the real heat meter ---
     { 0x00,    8,  -3, "Energy",               "Wh"    },
     { 0x08,    8,   0, "Energy",               "J"     },
     { 0x10,    8,  -6, "Volume",               "m^3"   },
     { 0x18,    8,  -3, "Mass",                 "kg"    },
-    { 0x20,    4,   0, "On time",              ""      },
-    { 0x24,    4,   0, "Operating time",       ""      },
+    // 0x20-0x27 and 0x70-0x77 encode s/min/h/days in the low two bits -- a
+    // UNIT, not a decimal exponent. Using the run-with-scalar form here printed
+    // 31913 hours as "3191300", so each unit gets its own row.
+    { 0x20,    1,   0, "On time",              "s"     },
+    { 0x21,    1,   0, "On time",              "min"   },
+    { 0x22,    1,   0, "On time",              "h"     },
+    { 0x23,    1,   0, "On time",              "days"  },
+    { 0x24,    1,   0, "Operating time",       "s"     },
+    { 0x25,    1,   0, "Operating time",       "min"   },
+    { 0x26,    1,   0, "Operating time",       "h"     },
+    { 0x27,    1,   0, "Operating time",       "days"  },
     { 0x28,    8,  -3, "Power",                "W"     },
     { 0x30,    8,   0, "Power",                "J/h"   },
     { 0x38,    8,  -6, "Volume flow",          "m^3/h" },
+    { 0x40,    8,  -7, "Volume flow ext",      "m^3/min" },
+    { 0x48,    8,  -9, "Volume flow ext",      "m^3/s" },
     { 0x50,    8,  -3, "Mass flow",            "kg/h"  },
     { 0x58,    4,  -3, "Flow temperature",     "degC"  },
     { 0x5C,    4,  -3, "Return temperature",   "degC"  },
@@ -248,8 +364,18 @@ static const vif_test_def_t kVifTest[] = {
     { 0x68,    4,  -3, "Pressure",             "bar"   },
     { 0x6C,    1,   0, "Date",                 ""      },
     { 0x6D,    1,   0, "Date/time",            ""      },
+    { 0x6E,    1,   0, "Units for H.C.A.",     ""      },
+    { 0x70,    1,   0, "Averaging duration",   "s"     },
+    { 0x71,    1,   0, "Averaging duration",   "min"   },
+    { 0x72,    1,   0, "Averaging duration",   "h"     },
+    { 0x73,    1,   0, "Averaging duration",   "days"  },
+    { 0x74,    1,   0, "Actuality duration",   "s"     },
+    { 0x75,    1,   0, "Actuality duration",   "min"   },
+    { 0x76,    1,   0, "Actuality duration",   "h"     },
+    { 0x77,    1,   0, "Actuality duration",   "days"  },
     { 0x78,    1,   0, "Fabrication number",   ""      },
     { 0x79,    1,   0, "Enhanced identification", ""   },
+    { 0x7A,    1,   0, "Bus address",          ""      },
 };
 
 // Find the row covering `key`. On a hit `*exp_out` gets the decimal exponent.
@@ -305,13 +431,17 @@ static walk_stats_t walk_records(const uint8_t *user, size_t len, size_t start, 
         }
 
         // VIF, plus the VIFE that carries the quantity when the VIF is an
-        // extension escape. Test for the escape byte *exactly*: 0xFD/0xFB always
-        // have bit 7 set (that is what makes them escapes), so masking with 0x7F
-        // first -- as mbus_parse() does -- collapses every extension record to
-        // 0x7D/0x7B and loses the quantity.
+        // extension escape. Test for the escape byte *exactly*: 0xFD/0xFB/0xFF
+        // always have bit 7 set (that is what makes them escapes), so masking
+        // with 0x7F first -- as mbus_parse() does -- collapses every extension
+        // record to 0x7D/0x7B/0x7F and loses the quantity.
+        //
+        // 0xFF must be here even though EN 13757-3 gives it no standard
+        // meaning: without it every manufacturer-specific record keys as 0x7F,
+        // they all collide, and the 0xFF rows in kVifTest are unreachable.
         uint8_t vif = user[pos++];
         uint16_t key;
-        if (vif == 0xFD || vif == 0xFB) {
+        if (vif == 0xFD || vif == 0xFB || vif == 0xFF) {
             if (pos >= len) {
                 st.overrun = true;
                 break;
@@ -421,6 +551,28 @@ static bool walk_is_clean(const walk_stats_t *st, size_t len)
         && st->consumed == len;
 }
 
+// Weaker test: the walk never ran off the end and consumed the block exactly,
+// but some records carry VIFs the table does not know.
+//
+// No real meter can pass walk_is_clean(). A MULTICAL 403 sends eight records
+// under VIF 0xFF, which EN 13757-3 defines as manufacturer-specific and which
+// no public table decodes, so demanding zero unknowns is satisfiable only by
+// the bench simulator. That is why a genuine 205-byte telegram reported "no
+// candidate offset produced a clean walk" while decoding perfectly.
+//
+// Act on this ONLY for the offset the CI field declares. On its own it does not
+// discriminate: that same 403 telegram walks to exactly the end from offsets 3,
+// 7 and 15, so picking the structural walk with the most records would choose
+// +3 and print plausible-looking rubbish - precisely what walk_is_clean() was
+// written to prevent. CI plus an exact walk is two independent confirmations;
+// an exact walk alone is one.
+static bool walk_is_structural(const walk_stats_t *st, size_t len)
+{
+    return !st->overrun
+        && st->records > 0
+        && st->consumed == len;
+}
+
 // Record offset implied by the CI field, or 0 if the CI is not one we know.
 static size_t declared_record_offset(uint8_t ci)
 {
@@ -467,6 +619,8 @@ void mbus_parse_test(const uint8_t *user, size_t len)
     // to a "best effort" offset -- a mis-aligned walk produces plausible-looking
     // wrong values, which is worse than reporting nothing.
     bool declared_clean = false;
+    bool declared_structural = false;
+    int declared_unmapped = 0;
     size_t chosen = 0;
     int chosen_records = 0;
     int clean_count = 0;
@@ -488,6 +642,11 @@ void mbus_parse_test(const uint8_t *user, size_t len)
                      (unsigned)st.consumed, (unsigned)len, clean ? "  CLEAN" : "");
         }
 
+        if (off == declared && walk_is_structural(&st, len)) {
+            declared_structural = true;
+            declared_unmapped = st.unknown + st.nonnumeric;
+        }
+
         if (!clean) {
             continue;
         }
@@ -499,6 +658,18 @@ void mbus_parse_test(const uint8_t *user, size_t len)
             chosen = off;
             chosen_records = st.records;
         }
+    }
+
+    // The CI field declared this offset and the walk consumed the block exactly.
+    // Trust it even with unmapped records: they log raw, which is strictly more
+    // information than refusing to decode the telegram at all.
+    if (declared_structural && !declared_clean) {
+        ESP_LOGI(TAG, "CI 0x%02X declares +%u and it walks the block exactly; %d record(s) "
+                      "carry VIFs outside the table and will log raw",
+                 ci, (unsigned)declared, declared_unmapped);
+        ESP_LOGI(TAG, "Decoding from offset %u:", (unsigned)declared);
+        walk_records(user, len, declared, true);
+        return;
     }
 
     if (clean_count == 0) {

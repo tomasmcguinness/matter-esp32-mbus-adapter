@@ -7,6 +7,15 @@ CONFIG_BT_NIMBLE_ENABLED=y
 #disable BT connection reattempt
 CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT=n
 
+# Trim NimBLE's RAM footprint. Peak heap use is during commissioning -- BLE,
+# OpenThread and the PASE session are all live at once -- and that is where
+# NetworkCommissioning::ScanNetworks has to malloc a contiguous ~1.2 kB packet
+# buffer for its response. Only one commissioner ever connects, so the default
+# of 3 connections and 24 msys blocks is pure overhead.
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+CONFIG_BT_NIMBLE_MSYS1_BLOCK_COUNT=12
+CONFIG_BT_NIMBLE_LOG_LEVEL_WARNING=y
+
 # Use a custom partition table
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"

@@ -1,5 +1,8 @@
 CONFIG_IDF_TARGET="esp32c6"
 
-# Console over the C6's built-in USB Serial/JTAG, so `idf.py monitor` gives an
-# interactive prompt on the same cable used for flashing.
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# Console on UART0 (GPIO16 TX / GPIO17 RX, J3 pins 3 and 2), 115200 8N1, for a
+# USB-serial adapter on J3. Log output is also mirrored to the C6's built-in
+# USB Serial/JTAG (IDF's default secondary console), but the interactive prompt
+# lives on UART0 only. To move the prompt to the USB-C port instead, select
+# ESP_CONSOLE_USB_SERIAL_JTAG in menuconfig -- main.cpp follows the choice.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
