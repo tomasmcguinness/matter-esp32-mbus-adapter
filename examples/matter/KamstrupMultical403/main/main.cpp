@@ -11,6 +11,12 @@
 #include <setup_payload/OnboardingCodesUtil.h>
 #include <setup_payload/QRCodeSetupPayloadGenerator.h>
 
+// FlowMeasurement is a ServerClusterInterface-backed cluster (not the legacy
+// esp-matter attribute store), so its MeasuredValue has to be pushed through
+// this dedicated setter -- attribute::update() returns ESP_ERR_NOT_SUPPORTED
+// (262) for it.
+#include <clusters/flow_measurement/integration.h>
+
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
 #include <platform/ESP32/OpenthreadLauncher.h>
 #include <platform/ConnectivityManager.h>
@@ -618,18 +624,25 @@ static void publish_meter_data(const heat_meter_data_t &d)
         attribute::update(heat_meter_endpoint_id, HEAT_METER_CLUSTER_ID, HM_ATTR_FLOW_ID, &val);
 
         nullable<uint16_t> mv; mv = flow_to_measured_value(d.flow_lph);
-        esp_matter_attr_val_t mval = esp_matter_nullable_uint16(mv);
-        attribute::update(flow_endpoint_id, FlowMeasurement::Id,
-                          FlowMeasurement::Attributes::MeasuredValue::Id, &mval);
+        chip::app::DataModel::Nullable<uint16_t> flow_nv =
+            mv.is_null() ? chip::app::DataModel::Nullable<uint16_t>()
+                         : chip::app::DataModel::Nullable<uint16_t>(mv.value());
+        CHIP_ERROR err = FlowMeasurement::SetMeasuredValue(flow_endpoint_id, flow_nv);
+        if (err != CHIP_NO_ERROR)
+        {
+            ESP_LOGE(TAG, "Failed to set FlowMeasurement MeasuredValue: %" CHIP_ERROR_FORMAT, err.Format());
+        }
     }
     else
     {
         // Null is the cluster's "unknown", and the right answer: leaving the
         // last reading in place would have a controller showing a flow rate the
         // meter has stopped reporting.
-        esp_matter_attr_val_t mval = esp_matter_nullable_uint16(nullable<uint16_t>());
-        attribute::update(flow_endpoint_id, FlowMeasurement::Id,
-                          FlowMeasurement::Attributes::MeasuredValue::Id, &mval);
+        CHIP_ERROR err = FlowMeasurement::SetMeasuredValue(flow_endpoint_id, chip::app::DataModel::Nullable<uint16_t>());
+        if (err != CHIP_NO_ERROR)
+        {
+            ESP_LOGE(TAG, "Failed to clear FlowMeasurement MeasuredValue: %" CHIP_ERROR_FORMAT, err.Format());
+        }
     }
     if (d.has_flow_temp)
     {

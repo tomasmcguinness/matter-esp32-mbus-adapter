@@ -50,7 +50,7 @@ The HAT does the level conversion. On the wire, mark/idle is the high bus
 voltage (~36 V) and a slave answers by modulating current, never by driving
 voltage — see `tools/pcb-test/README.md` for the measured master-side numbers.
 
-Link settings are **2400 baud, 8E1, primary address 0x05**, matching
+Link settings are **2400 baud, 8E1, primary address 0x01**, matching
 `examples/matter/KamstrupMultical403/main/mbus.cpp:61-73` and `examples/matter/KamstrupMultical403/main/mbus.h:9`. A mismatch here is
 the classic silent failure: the master just times out having received nothing
 at all.
@@ -60,7 +60,7 @@ at all.
 ```
 68 39 39 68
 08            C  = RSP_UD
-05            A  = primary address
+01            A  = primary address
 72            CI = variable data, 12-byte header
 78 56 34 12   identification 12345678, BCD, LSB first
 2D 2C         manufacturer 0x2C2D = "KAM"
@@ -98,11 +98,11 @@ Printed by `setup()` at `t = 0`, with access number `0x00` (the first real
 response carries `0x01`):
 
 ```
-68 39 39 68 08 05 72 78 56 34 12 2D 2C 34 04 00 00 00 00
+68 39 39 68 08 01 72 78 56 34 12 2D 2C 34 04 00 00 00 00
 04 06 68 10 00 00  04 14 50 46 00 00  04 22 FC 53 00 00
 04 2D 29 00 00 00  04 3B BC 02 00 00
 02 59 CC 10  02 5D D8 0E  02 61 F4 01
-F4 16
+F0 16
 ```
 
 Decodes as: Kamstrup, medium heat, ID 12345678, energy 4200 kWh, volume

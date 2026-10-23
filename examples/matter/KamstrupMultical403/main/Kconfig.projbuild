@@ -1,0 +1,20 @@
+menu "Kamstrup MULTICAL 403 example"
+
+    config MBUS_SIMULATE_METER
+        bool "Simulate the M-Bus meter in software (no wiring needed)"
+        default n
+        help
+            Skip the real M-Bus UART exchange entirely and synthesize a
+            MULTICAL 403-style telegram in software instead, using the same
+            slowly-varying flow/temperature model as
+            tools/kamstrup-403-sim (sines for flow, dT and return
+            temperature; power, energy and volume derived from them).
+
+            Useful for bench-testing Matter commissioning and the heat-meter
+            data model on a board with no M-Bus wiring at all -- a bare dev
+            board, or the custom PCB before the analogue M-Bus circuit has
+            been brought up. mbus_uart_init() becomes a no-op and
+            MBUS_MODE_NKE_ONLY is not meaningful with this enabled, since
+            there is no link layer to reset.
+
+endmenu

@@ -64,11 +64,11 @@
 
 /* Link settings. The source of truth is the master:
  *   examples/matter/KamstrupMultical403/main/mbus.cpp:61-73 - 2400 baud, 8 data bits, EVEN parity, 1 stop
- *   examples/matter/KamstrupMultical403/main/mbus.h:9       - primary address 0x05
+ *   examples/matter/KamstrupMultical403/main/mbus.h:9       - primary address 0x01
  * A mismatch here is the classic silent failure: the master simply times out
  * having received no bytes at all. */
 #define MBUS_BAUD_RATE_DEFAULT 2400
-#define MBUS_ADDRESS_DEFAULT   0x05
+#define MBUS_ADDRESS_DEFAULT   0x01
 #define MBUS_SERIAL_CONFIG     SERIAL_8E1
 
 #define MBUS_DATA_SIZE      255

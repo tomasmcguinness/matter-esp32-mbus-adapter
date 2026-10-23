@@ -3,10 +3,12 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+#include <math.h>
 #include <string.h>
 
 // --- Wiring / UART configuration -------------------------------------------
@@ -125,8 +127,181 @@ static void mbus_send_short_frame(uint8_t c, uint8_t addr)
     uart_wait_tx_done(MBUS_UART, pdMS_TO_TICKS(100));
 }
 
+#if CONFIG_MBUS_SIMULATE_METER
+
+// Software stand-in for a MULTICAL 403, exercised in place of the real UART
+// exchange. Same model as tools/kamstrup-403-sim: flow, dT and return
+// temperature are slow independent sines, everything else is derived from
+// them, so a real decoder can self-check (power == flow * dT * 1.163) the
+// same way it would against the hardware simulator or a real meter.
+#define SIM_WATER_KWH_PER_M3_K 1.163
+#define SIM_SEED_ENERGY_WH     4200000.0 // 4200 kWh
+#define SIM_SEED_VOLUME_L       180000.0 // 180 m3
+#define SIM_SEED_ON_TIME_H       21500.0 // ~2.5 y
+
+#define SIM_CI_RSP_LONG  0x72
+#define SIM_DIF_INT16    0x02
+#define SIM_DIF_INT32    0x04
+#define SIM_VIF_ENERGY_KWH  0x06
+#define SIM_VIF_VOLUME_10L  0x14
+#define SIM_VIF_ON_TIME_H   0x22
+#define SIM_VIF_POWER_100W  0x2D
+#define SIM_VIF_FLOW_LPH    0x3B
+#define SIM_VIF_FLOW_TEMP   0x59
+#define SIM_VIF_RETURN_TEMP 0x5D
+#define SIM_VIF_TEMP_DIFF   0x61
+
+// "KAM" packed per EN 13757-3, matching tools/kamstrup-403-sim/mbusslave.h.
+#define SIM_MANUFACTURER 0x2C2D
+#define SIM_VERSION      0x34
+#define SIM_MEDIUM       0x04
+#define SIM_IDENTIFICATION 12345678UL // BCD, LSB first
+
+typedef struct {
+    double energy_wh;
+    double volume_l;
+    double on_time_h;
+    double flow_lph;
+    double delta_k;
+    double t_return_c;
+    double t_flow_c;
+    double power_w;
+} mbus_sim_state_t;
+
+static mbus_sim_state_t s_sim;
+static double s_sim_t_s = 0.0;
+static int64_t s_sim_last_us = 0;
+static bool s_sim_initialized = false;
+static uint8_t s_sim_access_no = 0;
+
+static void mbus_sim_derive(void)
+{
+    s_sim.flow_lph   = 700.0 + 250.0 * sin(s_sim_t_s / 180.0); // ~450..950 l/h
+    s_sim.delta_k    =   5.0 +   2.0 * sin(s_sim_t_s /  97.0); // ~3..7 K
+    s_sim.t_return_c =  38.0 +   3.0 * sin(s_sim_t_s / 240.0); // ~35..41 degC
+    s_sim.t_flow_c   = s_sim.t_return_c + s_sim.delta_k;
+    s_sim.power_w    = (s_sim.flow_lph / 1000.0) * s_sim.delta_k *
+                       SIM_WATER_KWH_PER_M3_K * 1000.0;
+}
+
+// Advances the model off the wall clock, independent of polling, like the
+// hardware simulator's millis()-driven tick -- values move whether or not a
+// request comes in, and two requests close together do not double-count.
+static void mbus_sim_tick(void)
+{
+    int64_t now_us = esp_timer_get_time();
+
+    if (!s_sim_initialized) {
+        s_sim.energy_wh = SIM_SEED_ENERGY_WH;
+        s_sim.volume_l  = SIM_SEED_VOLUME_L;
+        s_sim.on_time_h = SIM_SEED_ON_TIME_H;
+        s_sim_t_s = 0.0;
+        s_sim_last_us = now_us;
+        s_sim_initialized = true;
+        mbus_sim_derive();
+        return;
+    }
+
+    double dt = (double)(now_us - s_sim_last_us) / 1e6;
+    if (dt <= 0.0) {
+        return;
+    }
+    s_sim_last_us = now_us;
+    s_sim_t_s += dt;
+
+    mbus_sim_derive();
+    s_sim.energy_wh += s_sim.power_w * dt / 3600.0;
+    s_sim.volume_l  += s_sim.flow_lph * dt / 3600.0;
+    s_sim.on_time_h += dt / 3600.0;
+}
+
+static uint8_t mbus_sim_put_u32(uint8_t *p, uint8_t dif, uint8_t vif, uint32_t v)
+{
+    p[0] = dif;
+    p[1] = vif;
+    p[2] = (uint8_t)(v);
+    p[3] = (uint8_t)(v >> 8);
+    p[4] = (uint8_t)(v >> 16);
+    p[5] = (uint8_t)(v >> 24);
+    return 6;
+}
+
+static uint8_t mbus_sim_put_i16(uint8_t *p, uint8_t dif, uint8_t vif, int16_t v)
+{
+    p[0] = dif;
+    p[1] = vif;
+    p[2] = (uint8_t)((uint16_t)v);
+    p[3] = (uint8_t)((uint16_t)v >> 8);
+    return 4;
+}
+
+// Builds the same C,A,CI,<12-byte header>,<records> layout mbus_parse()
+// expects -- see mbus_parser.h -- entirely in software.
+static esp_err_t mbus_sim_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, size_t *out_len)
+{
+    mbus_sim_tick();
+
+    uint8_t frame[3 + 12 + 8 * 6]; // header + the 8 widest-case records
+    size_t i = 0;
+
+    frame[i++] = 0x08; // C = RSP_UD
+    frame[i++] = primary_addr;
+    frame[i++] = SIM_CI_RSP_LONG;
+
+    uint32_t id = SIM_IDENTIFICATION;
+    for (int b = 0; b < 4; b++) {
+        frame[i++] = (uint8_t)((id % 10) | (((id / 10) % 10) << 4));
+        id /= 100;
+    }
+    frame[i++] = (uint8_t)(SIM_MANUFACTURER & 0xFF);
+    frame[i++] = (uint8_t)(SIM_MANUFACTURER >> 8);
+    frame[i++] = SIM_VERSION;
+    frame[i++] = SIM_MEDIUM;
+    frame[i++] = s_sim_access_no++;
+    frame[i++] = 0x00; // status: no alarm, no error
+    frame[i++] = 0x00; // signature (unused)
+    frame[i++] = 0x00;
+
+    i += mbus_sim_put_u32(&frame[i], SIM_DIF_INT32, SIM_VIF_ENERGY_KWH,
+                           (uint32_t)(s_sim.energy_wh / 1000.0));
+    i += mbus_sim_put_u32(&frame[i], SIM_DIF_INT32, SIM_VIF_VOLUME_10L,
+                           (uint32_t)(s_sim.volume_l / 10.0));
+    i += mbus_sim_put_u32(&frame[i], SIM_DIF_INT32, SIM_VIF_ON_TIME_H,
+                           (uint32_t)s_sim.on_time_h);
+    i += mbus_sim_put_u32(&frame[i], SIM_DIF_INT32, SIM_VIF_POWER_100W,
+                           (uint32_t)lround(s_sim.power_w / 100.0));
+    i += mbus_sim_put_u32(&frame[i], SIM_DIF_INT32, SIM_VIF_FLOW_LPH,
+                           (uint32_t)lround(s_sim.flow_lph));
+    i += mbus_sim_put_i16(&frame[i], SIM_DIF_INT16, SIM_VIF_FLOW_TEMP,
+                           (int16_t)lround(s_sim.t_flow_c * 100.0));
+    i += mbus_sim_put_i16(&frame[i], SIM_DIF_INT16, SIM_VIF_RETURN_TEMP,
+                           (int16_t)lround(s_sim.t_return_c * 100.0));
+    i += mbus_sim_put_i16(&frame[i], SIM_DIF_INT16, SIM_VIF_TEMP_DIFF,
+                           (int16_t)lround(s_sim.delta_k * 100.0));
+
+    if (i > buflen) {
+        ESP_LOGE(TAG, "Simulated user data (%u) exceeds buffer (%u)", (unsigned)i, (unsigned)buflen);
+        return ESP_ERR_NO_MEM;
+    }
+
+    memcpy(buf, frame, i);
+    *out_len = i;
+
+    ESP_LOGI(TAG, "SIM flow=%.0f l/h dT=%.2f K Tret=%.2f Tflow=%.2f power=%.1f W "
+                  "energy=%.3f kWh volume=%.3f m3",
+             s_sim.flow_lph, s_sim.delta_k, s_sim.t_return_c, s_sim.t_flow_c, s_sim.power_w,
+             s_sim.energy_wh / 1000.0, s_sim.volume_l / 1000.0);
+
+    return ESP_OK;
+}
+
+#endif // CONFIG_MBUS_SIMULATE_METER
+
 void mbus_uart_init(void)
 {
+#if CONFIG_MBUS_SIMULATE_METER
+    ESP_LOGW(TAG, "MBUS_SIMULATE_METER enabled: no real M-Bus UART, synthesizing telegrams in software");
+#else
     uart_config_t uart_config = {
         .baud_rate = 2400,
         .data_bits = UART_DATA_8_BITS,
@@ -140,6 +315,7 @@ void mbus_uart_init(void)
     uart_set_pin(MBUS_UART, MBUS_TXD_PIN, MBUS_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     uart_driver_install(MBUS_UART, MBUS_RX_BUF_SIZE, 0,
                         MBUS_EVENT_QUEUE_LEN, &s_uart_events, 0);
+#endif
 }
 
 esp_err_t mbus_send_nke(uint8_t primary_addr)
@@ -177,6 +353,10 @@ esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, s
     if (buf == NULL || out_len == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
+
+#if CONFIG_MBUS_SIMULATE_METER
+    return mbus_sim_request_data(primary_addr, buf, buflen, out_len);
+#else
 
     // Reset the slave's frame-count bit and clear any stale RX bytes.
     uart_flush_input(MBUS_UART);
@@ -288,4 +468,6 @@ esp_err_t mbus_request_data(uint8_t primary_addr, uint8_t *buf, size_t buflen, s
     memcpy(buf, user, l1);
     *out_len = l1;
     return ESP_OK;
+
+#endif // CONFIG_MBUS_SIMULATE_METER
 }

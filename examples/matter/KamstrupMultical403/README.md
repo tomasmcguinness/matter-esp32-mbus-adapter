@@ -106,12 +106,70 @@ to already be running.
 
 SW1 pulls `EN` low and is a plain hardware reset; it does not touch NVS.
 
+## Wiring the M-Bus
+
+The meter (or a simulated slave) connects to **J1**, the 2-pin 5 mm-pitch screw
+terminal labelled `M+` / `M-` on the silkscreen. Match the labels — the board's
+receiver (Q1 → R15 → Q3) is not polarity-agnostic.
+
+| J1 | Meter / slave |
+|---|---|
+| `M+` | bus `+` (mark idles at ~35 V, see `tools/pcb-test`) |
+| `M-` | bus `-` |
+
+This is the same two wires regardless of what is on the other end:
+
+- A real MULTICAL 403, wired per its installation manual.
+- The [`tools/kamstrup-403-sim`](../../../tools/kamstrup-403-sim) Pico: its own
+  M-Bus slave HAT does the level conversion (Pico GP0/GP1/GND to the HAT), and
+  it is the HAT's two-wire bus output that lands on J1 `M+`/`M-`.
+- The bench slave HAT used by `tools/pcb-test`.
+
+Only one slave at a time unless it is addressed — `MBUS_PRIMARY_ADDRESS` in
+`main/mbus.h` must match the slave's primary address, or the master polls into
+silence (`MBus: No response from meter at 0x..`) with no other symptom.
+
 ## Testing without a meter
 
 [`tools/kamstrup-403-sim`](../../../tools/kamstrup-403-sim) makes a Raspberry Pi
 Pico answer M-Bus polls with the telegram a real MULTICAL 403 sends, so this
 example can be exercised on the bench. For bringing up the analogue M-Bus circuit
 on its own, start with [`tools/pcb-test`](../../../tools/pcb-test).
+
+## Standard clusters and esp_matter's data model
+
+There are two separate "data model" switches at play here, and they do not
+move together:
+
+- **`CONFIG_ESP_MATTER_ENABLE_GENERATED_DATA_MODEL`** selects which esp-matter
+  *application API* this example is built against: the hand-maintained
+  **legacy** cluster/endpoint API (`components/esp_matter/data_model/legacy/`,
+  what this project uses -- the option is off, its default) or the newer
+  auto-generated ZAP-based one (`data_model/generated/`). This is a
+  build-time choice for app code and has no effect on the next point.
+- Independently of that flag, the **connectedhomeip** version esp_matter 1.6
+  bundles has migrated several standard clusters -- `FlowMeasurement` and
+  `BasicInformation` among them -- to the new `ServerClusterInterface`
+  architecture (`components/esp_matter/data_model_provider/clusters/*`,
+  compiled unconditionally). Their attribute storage is a dedicated C++
+  class, not esp-matter's attribute store, and this applies **regardless**
+  of which legacy/generated cluster-creation API built the cluster.
+
+The practical effect: `attribute::update()` silently fails
+(`ESP_ERR_NOT_SUPPORTED`, logged as `err: 262`) for any attribute on a
+cluster that has made this move, and the fix is a dedicated per-cluster
+setter instead (e.g. `chip::app::Clusters::FlowMeasurement::SetMeasuredValue()`,
+declared in `<clusters/flow_measurement/integration.h>`). This bit both the
+Flow Measurement cluster (`main.cpp`'s `publish_meter_data()`) and
+`BasicInformation`'s vendor/product name (`main/CHIPProjectConfig.h`) in this
+example. The custom Heat Meter cluster is unaffected -- it was never migrated
+and stays on the plain esp-matter attribute store.
+
+If a future change adds another standard cluster and its attributes refuse
+to update with the same error, check
+`components/esp_matter/data_model_provider/clusters/` for a matching
+directory and its `integration.h` before assuming the attribute path is
+wrong.
 
 ## Known limitations
 

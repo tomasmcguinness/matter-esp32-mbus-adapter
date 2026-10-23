@@ -28,7 +28,7 @@ static double decode_int(const uint8_t *p, int n)
     }
     // Sign-extend from n bytes.
     if (n < 8 && (p[n - 1] & 0x80)) {
-        int64_t mask = ((int64_t)-1) << (n * 8);
+        int64_t mask = (int64_t)(~(uint64_t)0 << (n * 8));
         v |= mask;
     }
     return (double)v;
