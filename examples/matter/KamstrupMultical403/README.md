@@ -88,6 +88,16 @@ brownout-reset the board at association. Wi-Fi has not been re-checked on
 revision G, where the 3V3 LDO (U4, AP2112K-3.3) shares the USB +5V rail with
 the M-Bus boost converter. See the supply notes in `main.cpp`.
 
+## Firmware version
+
+`version.txt` pins `PROJECT_VER`, which `esp_ota_get_app_description()->version`
+exposes as the Matter `SoftwareVersionString` — the "Programme interne"/firmware
+field Apple Home and other controllers show for the device. Without it, ESP-IDF
+falls back to `git describe --tags`, which silently goes stale: it only tracks
+the nearest tag, not the hardware actually in your hands, and never changes
+unless someone remembers to tag a new release. Bump this file when the PCB
+revision or firmware behaviour changes meaningfully.
+
 ## Factory reset
 
 **SW2** is the ESP32-C6 BOOT button (net `BOOT` → IO9). Hold it for **five
