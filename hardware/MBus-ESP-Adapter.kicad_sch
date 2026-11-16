@@ -7040,7 +7040,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0710KL"
+		(property "Mouser_PN" "603-RC0805FR-0710KL"
+			(at 25.4 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 25.4 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 25.4 140.97 0)
 			(hide yes)
 			(show_name no)
@@ -7145,20 +7167,8 @@
 				(justify left top)
 			)
 		)
-		(property "Mouser Part Number" "851-CR54NP-100MC"
+		(property "Mouser_PN" "851-CR54NP-100MC"
 			(at 160.02 521.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left top)
-			)
-		)
-		(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/Sumida/CR54NP-100MC?qs=LKl%2FVGYbYtia%2Fq%252BpuGWnzA%3D%3D"
-			(at 160.02 621.59 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7204,7 +7214,18 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "851-CDRH5D18NP-100NC"
+		(property "Mouser Part Number" ""
+			(at 143.51 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 143.51 25.4 0)
 			(hide yes)
 			(show_name no)
@@ -7308,7 +7329,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-AT0805BRE0733KL"
+		(property "Mouser_PN" "603-RC0805FR-0733KL"
+			(at 149.86 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 149.86 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 149.86 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -7801,7 +7844,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805FRE133K3L"
+		(property "Mouser_PN" "603-RT0805FRE073K3L"
+			(at 149.86 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 149.86 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 149.86 127 0)
 			(hide yes)
 			(show_name no)
@@ -8293,8 +8358,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-AT0805BRD071KL"
+		(property "Mouser_PN" "603-RC0805FR-071KL"
 			(at 110.49 114.3 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 110.49 114.3 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 110.49 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8539,6 +8626,39 @@
 				)
 			)
 		)
+		(property "Mouser_PN" "621-AP2112K-3.3TRG1"
+			(at 45.72 171.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 45.72 171.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 45.72 171.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "c0696487-9fd8-4e18-bfbf-2d017204e569")
 		)
@@ -8717,8 +8837,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-AT0805BRD071KL"
+		(property "Mouser_PN" "603-RC0805FR-071KL"
 			(at 110.49 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 110.49 107.95 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 110.49 107.95 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8819,7 +8961,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "512-SS14"
+		(property "Mouser_PN" "512-SS14"
+			(at 171.45 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 171.45 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 171.45 25.4 0)
 			(hide yes)
 			(show_name no)
@@ -8923,7 +9087,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "603-RC0805FR-075K1L"
+			(at 144.78 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 144.78 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 144.78 165.1 0)
 			(hide yes)
 			(show_name no)
@@ -9027,7 +9213,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "603-RC0805FR-075K1L"
+			(at 265.43 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 265.43 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 265.43 142.24 0)
 			(hide yes)
 			(show_name no)
@@ -9131,7 +9339,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C105J4RACLR"
+		(property "Mouser_PN" "80-C0805C105J4RACLR"
+			(at 62.23 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 62.23 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 62.23 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -9233,8 +9463,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" ""
+		(property "Mouser_PN" "651-1935161"
 			(at 265.43 30.48 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 265.43 30.48 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 265.43 30.48 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -9335,7 +9587,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "963-MSASL21GBB5226MT"
+		(property "Mouser_PN" "963-MSASL21GBB5226MT"
+			(at 24.13 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 24.13 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 24.13 29.21 0)
 			(hide yes)
 			(show_name no)
@@ -9439,7 +9713,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "621-AP3015AKTR-G1"
+		(property "Mouser_PN" "621-AP3015AKTR-G1"
+			(at 152.4 39.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 152.4 39.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 152.4 39.37 0)
 			(hide yes)
 			(show_name no)
@@ -9552,7 +9848,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0710KL"
+		(property "Mouser_PN" "603-RC0805FR-0710KL"
+			(at 62.23 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 62.23 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 62.23 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -9733,8 +10051,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "576-1206L050YR"
+		(property "Mouser_PN" "576-1206L050YR"
 			(at 120.65 25.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 120.65 25.4 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 120.65 25.4 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9837,7 +10177,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "603-RC0805FR-075K1L"
+			(at 124.46 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 124.46 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 124.46 165.1 0)
 			(hide yes)
 			(show_name no)
@@ -9966,7 +10328,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "637-BC817-25"
+		(property "Mouser_PN" "771-BC817-25235"
+			(at 163.83 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 163.83 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 163.83 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -10073,7 +10457,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C105J4RACLR"
+		(property "Mouser_PN" "80-C0805C105J4RACLR"
+			(at 60.96 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 60.96 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 60.96 172.72 0)
 			(hide yes)
 			(show_name no)
@@ -10254,7 +10660,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0739K2L"
+		(property "Mouser_PN" "603-RC0805FR-0739KL"
+			(at 138.43 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 138.43 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 138.43 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -10461,7 +10889,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "637-BC817-25"
+		(property "Mouser_PN" "771-BC817-25235"
+			(at 123.19 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 123.19 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 123.19 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -10568,7 +11018,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "603-RC0805FR-075K1L"
+			(at 134.62 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 134.62 165.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 134.62 165.1 0)
 			(hide yes)
 			(show_name no)
@@ -10824,7 +11296,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "640-SWT0110020010SSA"
+		(property "Mouser_PN" "640-SWT0110020010SSA"
+			(at 49.53 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 49.53 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 49.53 127 0)
 			(hide yes)
 			(show_name no)
@@ -10928,8 +11422,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" ""
+		(property "Mouser_PN" ""
 			(at 242.57 54.61 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 242.57 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 242.57 54.61 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11037,7 +11553,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "963-MLASU31LBB5106MT"
+		(property "Mouser_PN" "963-UMK316BBJ106ML-T"
+			(at 193.04 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 193.04 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 193.04 40.64 0)
 			(hide yes)
 			(show_name no)
@@ -11244,7 +11782,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "583-BC807"
+		(property "Mouser_PN" "583-BC807"
+			(at 175.26 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 175.26 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 175.26 101.6 0)
 			(hide yes)
 			(show_name no)
@@ -11351,7 +11911,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0782RL"
+		(property "Mouser_PN" "603-RC0805FR-0782RL"
+			(at 177.8 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 177.8 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 177.8 125.73 0)
 			(hide yes)
 			(show_name no)
@@ -11466,8 +12048,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "630-HSMH-H170"
+		(property "Mouser_PN" "859-LTST-C171KRKT"
 			(at 124.46 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 124.46 176.53 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 124.46 176.53 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11581,8 +12185,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "630-HSMH-H170"
+		(property "Mouser_PN" "859-LTST-C171KRKT"
 			(at 134.62 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 134.62 176.53 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 134.62 176.53 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11685,7 +12311,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C1206C475K5P"
+		(property "Mouser_PN" "80-C1206C475K5P"
+			(at 128.27 35.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 128.27 35.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 128.27 35.56 0)
 			(hide yes)
 			(show_name no)
@@ -11789,7 +12437,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805FRE0737K4L"
+		(property "Mouser_PN" "603-RT0805FRE0737K4L"
+			(at 180.34 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 180.34 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 180.34 49.53 0)
 			(hide yes)
 			(show_name no)
@@ -11893,7 +12563,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "356-ESP32-C6MINI1UH4"
+		(property "Mouser_PN" "356-ESP32-C6MINI1UH4"
+			(at 71.12 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 71.12 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 71.12 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -12226,7 +12918,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "640-SWT0110020010SSA"
+		(property "Mouser_PN" "640-SWT0110020010SSA"
+			(at 29.21 102.87 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 29.21 102.87 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 29.21 102.87 0)
 			(hide yes)
 			(show_name no)
@@ -12408,7 +13122,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "963-MSASU319HB5105KT"
+		(property "Mouser_PN" "187-CL31B105KBHNNNE"
+			(at 205.74 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 205.74 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 205.74 40.64 0)
 			(hide yes)
 			(show_name no)
@@ -12512,7 +13248,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C104J4RAUTO"
+		(property "Mouser_PN" "187-CL21B104KBCNNNC"
+			(at 36.83 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 36.83 29.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 36.83 29.21 0)
 			(hide yes)
 			(show_name no)
@@ -12847,7 +13605,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "640-USB4105-GF-A"
+		(property "Mouser_PN" "640-USB4105-GF-A"
+			(at 227.33 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 227.33 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 227.33 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -13229,7 +14009,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805FRE131ML"
+		(property "Mouser_PN" "603-RT0805FRE131ML"
+			(at 180.34 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 180.34 33.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 180.34 33.02 0)
 			(hide yes)
 			(show_name no)
@@ -13489,7 +14291,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805DRD0722KL"
+		(property "Mouser_PN" "603-RC0805FR-0722KL"
+			(at 138.43 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 138.43 127 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 138.43 127 0)
 			(hide yes)
 			(show_name no)
@@ -13593,7 +14417,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "603-RC0805FR-075K1L"
+			(at 269.24 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 269.24 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 269.24 142.24 0)
 			(hide yes)
 			(show_name no)
@@ -13697,7 +14543,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C105J4RACLR"
+		(property "Mouser_PN" "80-C0805C105J4RACLR"
+			(at 27.94 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 27.94 172.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 27.94 172.72 0)
 			(hide yes)
 			(show_name no)
@@ -13879,7 +14747,29 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6AEB224V"
+		(property "Mouser_PN" "603-RC0805FR-07220KL"
+			(at 177.8 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 177.8 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
 			(at 177.8 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -14228,8 +15118,30 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "630-HSMH-H170"
+		(property "Mouser_PN" "859-LTST-C171KRKT"
 			(at 144.78 176.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Part Number" ""
+			(at 144.78 176.53 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Mouser Price/Stock" ""
+			(at 144.78 176.53 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

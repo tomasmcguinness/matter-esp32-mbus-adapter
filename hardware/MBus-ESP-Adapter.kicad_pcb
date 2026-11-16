@@ -196,7 +196,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0710KL"
+		(property "Mouser_PN" "603-RT0805BRD0710KL"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -368,7 +368,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805FRE131ML"
+		(property "Mouser_PN" "603-RT0805FRE131ML"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -540,7 +540,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" ""
+		(property "Mouser_PN" ""
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -980,7 +980,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-AT0805BRD071KL"
+		(property "Mouser_PN" "603-AT0805BRD071KL"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -1156,7 +1156,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "640-SWT0110020010SSA"
+		(property "Mouser_PN" "640-SWT0110020010SSA"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -1451,7 +1451,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "630-HSMH-H170"
+		(property "Mouser_PN" "630-HSMH-H170"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -1687,7 +1687,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "630-HSMH-H170"
+		(property "Mouser_PN" "630-HSMH-H170"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -1910,7 +1910,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0710KL"
+		(property "Mouser_PN" "603-RT0805BRD0710KL"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2082,7 +2082,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C104J4RAUTO"
+		(property "Mouser_PN" "80-C0805C104J4RAUTO"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2260,7 +2260,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "640-USB4105-GF-A"
+		(property "Mouser_PN" "640-USB4105-GF-A"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2661,7 +2661,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "667-ERA-6ARW512V"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2846,7 +2846,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "630-HSMH-H170"
+		(property "Mouser_PN" "630-HSMH-H170"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -3069,7 +3069,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "667-ERA-6ARW512V"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -3241,7 +3241,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805FRE0737K4L"
+		(property "Mouser_PN" "603-RT0805FRE0737K4L"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -3413,7 +3413,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "667-ERA-6ARW512V"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -3585,7 +3585,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0739K2L"
+		(property "Mouser_PN" "603-RT0805BRD0739K2L"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -3761,7 +3761,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "512-SS14"
+		(property "Mouser_PN" "512-SS14"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -4063,7 +4063,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6AEB224V"
+		(property "Mouser_PN" "667-ERA-6AEB224V"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -4235,7 +4235,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "576-1206L050YR"
+		(property "Mouser_PN" "576-1206L050YR"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -4407,7 +4407,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-AT0805BRE0733KL"
+		(property "Mouser_PN" "603-AT0805BRE0733KL"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -4583,7 +4583,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "640-SWT0110020010SSA"
+		(property "Mouser_PN" "640-SWT0110020010SSA"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -4865,7 +4865,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C105J4RACLR"
+		(property "Mouser_PN" "80-C0805C105J4RACLR"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -5037,7 +5037,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805FRE133K3L"
+		(property "Mouser_PN" "603-RT0805FRE073K3L"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -5209,7 +5209,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805DRD0722KL"
+		(property "Mouser_PN" "603-RT0805DRD0722KL"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -5771,7 +5771,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C1206C475K5P"
+		(property "Mouser_PN" "80-C1206C475K5P"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -5969,7 +5969,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "637-BC817-25"
+		(property "Mouser_PN" "637-BC817-25"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -6365,7 +6365,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "963-MSASU319HB5105KT"
+		(property "Mouser_PN" "963-MSASU319HB5105KT"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -6563,7 +6563,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "637-BC817-25"
+		(property "Mouser_PN" "637-BC817-25"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -6959,7 +6959,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C105J4RACLR"
+		(property "Mouser_PN" "80-C0805C105J4RACLR"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -7131,7 +7131,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "356-ESP32-C6MINI1UH4"
+		(property "Mouser_PN" "356-ESP32-C6MINI1UH4"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -8019,7 +8019,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "963-MLASU31LBB5106MT"
+		(property "Mouser_PN" "963-MLASU31LBB5106MT"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -8191,7 +8191,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-RT0805BRD0782RL"
+		(property "Mouser_PN" "603-RT0805BRD0782RL"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -8363,7 +8363,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "667-ERA-6ARW512V"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -8601,7 +8601,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "851-CDRH5D18NP-100NC"
+		(property "Mouser_PN" "851-CDRH5D18NP-100NC"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -8819,7 +8819,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "621-AP3015AKTR-G1"
+		(property "Mouser_PN" "621-AP3015AKTR-G1"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -9235,7 +9235,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" ""
+		(property "Mouser_PN" ""
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -9512,7 +9512,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "603-AT0805BRD071KL"
+		(property "Mouser_PN" "603-AT0805BRD071KL"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -9684,7 +9684,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "667-ERA-6ARW512V"
+		(property "Mouser_PN" "667-ERA-6ARW512V"
 			(at 0 0 90)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -9856,7 +9856,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "80-C0805C105J4RACLR"
+		(property "Mouser_PN" "80-C0805C105J4RACLR"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -10028,7 +10028,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "963-MSASL21GBB5226MT"
+		(property "Mouser_PN" "963-MSASL21GBB5226MT"
 			(at 0 0 180)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -10226,7 +10226,7 @@
 				)
 			)
 		)
-		(property "Mouse_PN" "583-BC807"
+		(property "Mouser_PN" "583-BC807"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
